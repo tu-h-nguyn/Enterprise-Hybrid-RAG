@@ -15,7 +15,9 @@ means nothing drifted, and a difference is a real change worth committing.
 
 Some values are deterministic in principle but not in practice.
 ``--allow-drift PREFIX`` names those: differences under the prefix are printed
-like any other, but do not count as a change. The one that needs it is
+like any other, but do not count as a change. It only ever excuses a *value*
+that moved — a key present on one side and absent on the other is a structural
+change and is always reported, whatever prefix it carries. The one that needs it is
 ``scale.chroma/`` — Chroma's HNSW index is approximate, and two identical runs
 of the corpus-scale experiment disagree on a handful of deep-rank values while
 every exhaustive-search row reproduces exactly. Without the flag the experiment
@@ -130,11 +132,26 @@ def main() -> int:
     keys = sorted(set(left) | set(right))
     differing = [(k, left.get(k), right.get(k)) for k in keys if left.get(k) != right.get(k)]
 
+    # Drift means a value moved. A key that exists on only one side is a
+    # structural change — a row that appeared or vanished — and no prefix
+    # excuses it: that is how a run can replace one set of rows with another
+    # and still report "reproduced exactly".
     allowed = [(k, a, b) for k, a, b in differing
-               if any(k.startswith(prefix) for prefix in args.allow_drift)]
+               if k in left and k in right
+               and any(k.startswith(prefix) for prefix in args.allow_drift)]
     changes = [row for row in differing if row not in allowed]
+    structural = [k for k, _, _ in changes if k not in left or k not in right]
 
     print(f"\ncompared {len(keys)} quality values")
+    if structural:
+        print(f"{len(structural)} value(s) exist on only one side; these are never "
+              "treated as drift:\n")
+        for key in structural[:10]:
+            side = "candidate only" if key in right else "baseline only"
+            print(f"  {key:<70}{side}")
+        if len(structural) > 10:
+            print(f"  ... and {len(structural) - 10} more")
+        print()
     if allowed:
         print(f"{len(allowed)} differed under an --allow-drift prefix "
               f"({', '.join(args.allow_drift)}) and are not counted:\n")

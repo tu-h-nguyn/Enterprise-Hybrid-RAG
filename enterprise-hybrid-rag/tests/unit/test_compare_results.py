@@ -122,6 +122,29 @@ def test_allowed_drift_does_not_excuse_the_exact_rows(
     assert main() == 1
 
 
+def test_allowed_drift_does_not_excuse_a_row_that_appeared_or_vanished(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Drift means a value moved, never a row arriving or leaving.
+
+    This is not hypothetical. Changing the default chunk size swapped which
+    sizes each store was run at, so a whole set of `scale.chroma/...` rows was
+    replaced by a different set — and with the prefix allowed, the run reported
+    "reproduced exactly" and threw its own results away.
+    """
+    baseline = _scale_payload()
+    candidate = _scale_payload()
+    for row in candidate["sizes"]:
+        if row["vector_backend"] == "chroma":
+            row["chunk_size_tokens"] = 256      # a different key, not a changed value
+    left = _write(tmp_path, "a.json", baseline)
+    right = _write(tmp_path, "b.json", candidate)
+    monkeypatch.setattr("sys.argv", ["compare_results.py", "--baseline", str(left),
+                                     "--candidate", str(right),
+                                     "--allow-drift", "scale.chroma/"])
+
+    assert main() == 1
+
+
 def test_runs_on_different_backends_are_refused(tmp_path: Path,
                                                 monkeypatch: pytest.MonkeyPatch) -> None:
     """A fallback-vs-neural diff would report everything as changed and mean nothing."""
