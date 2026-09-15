@@ -86,7 +86,7 @@ Hybrid + Reranker leads every quality column except Recall@5, and costs **nearly
 
 Two columns are worth stopping on. **BM25 recall does not move past rank 3** — 0.8023 at R@3, R@5 and R@10 alike: it finds the chunk in the first three or it never finds it, which is what a lexical matcher does when the words are not there. And **both fused configurations reach 1.0000 at R@10**, so everything the corpus can answer is inside ten candidates; from there the job is entirely ranking, which is exactly the job the reranker does.
 
-Treat the timings as an order of magnitude, not a figure: the same pipeline over the same 77 chunks measured 796.30 ms in the corpus-scale run, on a different runner and through the exhaustive vector store. The quality columns, by contrast, reproduce exactly.
+Treat the timings as an order of magnitude, not a figure: the same pipeline over the same 77 chunks measured 685.39 ms in the corpus-scale run, on a different runner and through the exhaustive vector store. The quality columns, by contrast, reproduce exactly.
 
 ### Recall@1 by question type
 
@@ -131,46 +131,49 @@ because a bigger chunk is a bigger target to hit, and 256 wins those anyway.
 
 ### It still works when the corpus gets much bigger
 
-44 chunks is a haybale, not a haystack: 30 of them are the answer to something, so
-top-5 covers more than a tenth of everything there is. So the questions, their answer
-spans and every retrieval setting were held fixed while the corpus grew with
-**in-domain distractor documents** — same topics, same register, same policy
-vocabulary, other fictional companies ([`scripts/make_distractor_corpus.py`](enterprise-hybrid-rag/scripts/make_distractor_corpus.py)).
-Recall@1, exhaustive search, neural backends:
+77 chunks is a haybale, not a haystack: 40 of them are the answer to something, so
+top-5 covers 6.5% of everything there is. So the questions, their answer spans and
+every retrieval setting were held fixed while the corpus grew with **in-domain
+distractor documents** — same topics, same register, same policy vocabulary, other
+fictional companies ([`scripts/make_distractor_corpus.py`](enterprise-hybrid-rag/scripts/make_distractor_corpus.py)).
+Recall@1, exhaustive search, neural backends, shipped chunk size:
 
 | Chunks | Gold chunks are… | Dense | BM25 | Hybrid | **Hybrid + Reranker** |
 |---:|---:|---:|---:|---:|---:|
-| 44 | 68.2% of the corpus | 0.5155 | 0.5969 | 0.5620 | **0.7016** |
-| 235 | 12.8% | 0.4574 | 0.5504 | 0.5039 | **0.6550** |
-| 936 | 3.2% | 0.4109 | 0.5504 | 0.4806 | **0.6318** |
-| 4658 | **0.6%** | 0.3643 | 0.5736 | 0.4457 | **0.6318** |
-| | **Δ over 106×** | **−0.1512** | −0.0233 | −0.1163 | **−0.0698** |
+| 77 | 51.95% of the corpus | 0.5853 | 0.6434 | 0.6434 | **0.7946** |
+| 423 | 9.46% | 0.4690 | 0.6085 | 0.5853 | **0.7248** |
+| 1704 | 2.35% | 0.4341 | 0.5969 | 0.5620 | **0.7248** |
+| 8548 | **0.47%** | 0.3798 | 0.5969 | 0.4922 | **0.7248** |
+| | **Δ over 111×** | **−0.2055** | −0.0465 | −0.1512 | **−0.0698** |
 
-**Dense retrieval loses 29% of its Recall@1 and the reranked pipeline loses 10%,
-while the gold chunk goes from one in 1.5 to one in 155.** Recall@5 for the full
-pipeline falls only from 0.9186 to 0.8566. At 44 chunks the reranker is worth
-+0.1861 R@1 over dense alone; at 4658 chunks it is worth **+0.2675**. The reranker
-is not a few points of polish on top of retrieval — it is the part that makes
-retrieval survive a corpus.
+**Dense retrieval loses 35% of its Recall@1. The reranked pipeline loses 9%, and
+then stops losing: 0.7248 at 423 chunks, 0.7248 at 1704, 0.7248 at 8548** — flat
+across a twentyfold growth in the haystack, while the gold chunk goes from one in
+1.9 to one in 213. Recall@5 falls from 0.9070 to 0.8062.
 
-The distractors are doing real work rather than padding: at 4658 chunks **41.9% of
+At 77 chunks the reranker is worth +0.2093 R@1 over dense alone; at 8548 chunks it
+is worth **+0.3450**. Its value does not merely survive scale, it *grows* with it.
+That is the argument for paying its latency, and it is invisible at the size the
+rest of the evaluation runs at.
+
+The distractors are doing real work rather than padding: at 8548 chunks **41.9% of
 questions have a distractor at rank 1** under dense retrieval, and distractors hold
-**78.1%** of the top 5. The reranked pipeline pushes those to 16.3% and 60.9%.
+**75.4%** of the top 5. The reranked pipeline pushes those to 16.3% and 58.1%.
 
 Two things this also settled, both of which had been assumptions:
 
 - **Reranking cost does not grow with the corpus.** It always rescores a fixed
-  top-k, so the cross-encoder never sees the corpus: it showed no trend across
-  the four sizes, sitting around 1.4 s per query throughout, while dense search
-  stayed in the tens of milliseconds and roughly doubled for 106× the documents.
+  top-k, so the cross-encoder never sees the corpus: no trend at all across the
+  four sizes, around 0.7 s per query throughout, while dense search stayed in the
+  tens of milliseconds and grew by about half for 111× the documents. Index build
+  time is where the corpus is actually paid for — 8.87 s to 224.18 s.
 - **Approximate search is free here — with real embeddings.** Every size was run
   against both Chroma's HNSW index and exhaustive cosine. With MiniLM,
-  **Recall@1 was identical for every configuration at every size**, and the
-  reranked pipeline matched on every metric; dense-only and hybrid differed only
-  from rank 3 down, by one or two questions. Under the offline TF-IDF
-  fallback the same comparison loses 0.0233 R@1 to HNSW and is not even
-  reproducible run to run — so "HNSW is fine" is a fact about these embeddings,
-  not about HNSW.
+  **Recall@1 was identical for every configuration at every size**, and the only
+  difference anywhere was 0.0023 of dense MRR at the largest corpus. Under the
+  offline TF-IDF fallback the same comparison loses 0.0233 R@1 to HNSW and is not
+  even reproducible run to run — so "HNSW is fine" is a fact about these
+  embeddings, not about HNSW.
 
 Three guards make the numbers mean something, and each aborts the run rather than
 reporting: a distractor containing a labelled answer span (a correct hit scored as
@@ -179,7 +182,7 @@ scale effect), and an embedder whose width changes with the corpus. Full table:
 [`data/evaluation/scale_report.md`](enterprise-hybrid-rag/data/evaluation/scale_report.md).
 
 > With 43 scored questions one question is 0.0233, which is why BM25 reads
-> *higher* at 4658 chunks than at 936. Read the trends, not the third decimal.
+> *higher* at 8548 chunks than at 1704. Read the trends, not the third decimal.
 
 ### Generation
 
@@ -328,11 +331,11 @@ Two workflows run per pull request:
 
 ## Limitations
 
-1. **The corpus is synthetic**, and the labelled part of it is small — 22 documents, 44 chunks, 43 scored questions, where one question is 0.0233. The scale experiment above grows it to 4658 chunks, but the added documents are generated from templates: they are hard negatives by construction, and a real corpus that size would hold both easier negatives and harder ones (near-duplicate revisions of the same policy). Treat every comparison as directional.
+1. **The corpus is synthetic**, and the labelled part of it is small — 22 documents, 77 chunks, 43 scored questions, where one question is 0.0233. The scale experiment above grows it to 8548 chunks, but the added documents are generated from templates: they are hard negatives by construction, and a real corpus that size would hold both easier negatives and harder ones (near-duplicate revisions of the same policy). Treat every comparison as directional.
 2. **Generation is not measured with a real LLM.** CI has no key, so those metrics describe sentence selection.
 3. **The abstention threshold is tuned on one corpus** and over-refuses 34.9% of answerable questions.
 4. **Token counts are a `chars/4` heuristic**, not a real tokenizer, so chunk sizes and context budgets are approximate.
-5. **Reranking dominates latency** — 1416.77 ms per query against BM25's 0.72 ms, and CI-runner timings vary about twofold run to run, so only the order of magnitude is meaningful.
+5. **Reranking dominates latency** — 699.95 ms per query against BM25's 0.78 ms, and CI-runner timings vary about twofold run to run, so only the order of magnitude is meaningful.
 6. **The image is large** — torch dominates it. It was 7.29 GB, because torch arrives as a dependency of sentence-transformers and the Linux wheel on PyPI is the CUDA build, for a container with no GPU. The Dockerfile now takes the `+cpu` build from PyTorch's own index, and CI asserts both halves of that: the installed torch must be a `+cpu` version, and the API image must stay under a 4 GiB ceiling. The exact size is printed by every Docker job.
 7. **Indexing is a full rebuild**, not an incremental upsert — correct at this size, wrong at scale.
 
