@@ -5,7 +5,7 @@
 [![CI](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml)
 [![Benchmark](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
-![Tests](https://img.shields.io/badge/tests-158%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-164%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-79%25-green)
 ![Ruff](https://img.shields.io/badge/lint-ruff-261230)
 ![mypy](https://img.shields.io/badge/types-mypy%20clean-blue)
@@ -305,8 +305,8 @@ LLM_API_KEY=ollama    # required non-empty; Ollama ignores the value
 pip install -r requirements-dev.txt
 
 ruff check .    # lint and import order
-mypy            # 71 source files, clean
-pytest          # 158 tests, no network and no API key
+mypy            # 72 source files, clean
+pytest          # 164 tests, no network and no API key
 ```
 
 `mypy` runs over `app/`, `scripts/` and `frontend/` and reports no issues, which is what
@@ -326,7 +326,7 @@ Unit tests cover the PDF loader against a PDF generated inside the test, chunker
 
 Two workflows run per pull request:
 
-- **CI** — `ruff`, `mypy`, tests with a 73% coverage floor, ingest, a **blocking evaluation-label audit**, and an API smoke test, on pinned offline backends so the job is deterministic. The audit is a real gate: it was verified by deliberately corrupting an answer span and confirming a non-zero exit.
+- **CI** — `ruff`, `mypy`, tests with a 73% coverage floor, ingest, a **blocking evaluation-label audit**, a check that **every number in both READMEs and the report traces to a committed artefact**, and an API smoke test, on pinned offline backends so the job is deterministic. The audit is a real gate: it was verified by deliberately corrupting an answer span and confirming a non-zero exit.
 - **Docker** — builds both image targets with the Actions layer cache, ingests inside the container, then starts it and queries the live API. Without the cache this job re-downloaded ~3 GB of wheels every run and took anywhere from 2 to 37 minutes.
 - **Benchmark** — the full suite on the neural backends. It compares what it just measured against the committed numbers on **quality metrics only**, since latency is wall-clock and moves every run. Identical output means the benchmark reproduced; it commits regenerated results only when a quality metric actually changed. Three independent runs on different runners agreed on all **698** compared values. The corpus-scale experiment runs as a second job in the same workflow and is held to the same standard, including an assertion that the embedder held at 384 dimensions at every corpus size before it is allowed to publish anything.
 
@@ -355,7 +355,7 @@ Two workflows run per pull request:
 | [`app/evaluation/`](enterprise-hybrid-rag/app/evaluation) | Dataset schema, resolver, metrics, experiment runner |
 | [`app/services/`](enterprise-hybrid-rag/app/services) | RAG pipeline, abstention gate, document lifecycle |
 | [`scripts/`](enterprise-hybrid-rag/scripts) | Ingest, evaluate, benchmark, corpus-scale experiment |
-| [`tests/`](enterprise-hybrid-rag/tests) | 158 unit and integration tests |
+| [`tests/`](enterprise-hybrid-rag/tests) | 164 unit and integration tests |
 | [`HANDOFF.md`](enterprise-hybrid-rag/HANDOFF.md) | The engineering spec: interface contracts, status by phase, and what is still open |
 
 **[Full technical write-up →](enterprise-hybrid-rag/README.md)** — evaluation methodology, why each decision was made, and the complete results.
