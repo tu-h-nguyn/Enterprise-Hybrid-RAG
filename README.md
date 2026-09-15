@@ -70,12 +70,14 @@ Both indexes are built from **the same chunk list in one pass** — if they drif
 
 | Configuration | R@1 | R@3 | R@5 | R@10 | MRR | nDCG@5 | mean ms |
 |---|---|---|---|---|---|---|---|
-| Dense only | 0.5155 | 0.7946 | 0.8295 | 0.8527 | 0.6906 | 0.7199 | 9.15 |
-| BM25 only | 0.5969 | 0.8256 | 0.9070 | 0.9302 | 0.7694 | 0.8001 | **0.50** |
-| Hybrid (RRF) | 0.5620 | 0.7946 | 0.8372 | 0.8837 | 0.7362 | 0.7513 | 9.41 |
-| **Hybrid + Reranker** | **0.7016** | **0.8953** | **0.9186** | **0.9767** | **0.8568** | **0.8610** | 783.67 |
+| Dense only | 0.5155 | 0.7946 | 0.8295 | 0.8527 | 0.6906 | 0.7199 | 16.93 |
+| BM25 only | 0.5969 | 0.8256 | 0.9070 | 0.9302 | 0.7694 | 0.8001 | **0.72** |
+| Hybrid (RRF) | 0.5620 | 0.7946 | 0.8372 | 0.8837 | 0.7362 | 0.7513 | 17.14 |
+| **Hybrid + Reranker** | **0.7016** | **0.8953** | **0.9186** | **0.9767** | **0.8568** | **0.8610** | 1416.77 |
 
-Hybrid + Reranker leads **every quality column**. It also costs **1567× more per query than BM25** (783.67 ms vs 0.50 ms on a CPU runner) — reranking, not retrieval, dominates the request.
+Hybrid + Reranker leads **every quality column**, and costs **three orders of magnitude more per query than BM25** (1416.77 ms against 0.72 ms). Reranking, not retrieval, is the request.
+
+Treat those timings as an order of magnitude, not a figure: the identical configuration measured 783.67 ms on a different CI runner (`git show dd144a8:enterprise-hybrid-rag/data/evaluation/results.json`), so shared-runner latency varies about twofold. The quality columns, by contrast, reproduced **exactly** across both runs.
 
 ### Recall@1 by question type
 
@@ -200,7 +202,7 @@ Unit tests cover the PDF loader against a PDF generated inside the test, chunker
 Two workflows run per pull request:
 
 - **CI** — tests, ingest, a **blocking evaluation-label audit**, and an API smoke test, on pinned offline backends so the job is deterministic. The audit is a real gate: it was verified by deliberately corrupting an answer span and confirming a non-zero exit.
-- **Benchmark** — the full suite on the neural backends, committing regenerated results back. Also builds both Docker targets, ingests inside the container and queries the running API.
+- **Benchmark** — the full suite on the neural backends. It compares what it just measured against the committed numbers on **quality metrics only**, since latency is wall-clock and moves every run. Identical output means the benchmark reproduced; it commits regenerated results only when a quality metric actually changed. Two independent runs on different runners agreed on all **698** compared values.
 
 ---
 
@@ -210,7 +212,7 @@ Two workflows run per pull request:
 2. **Generation is not measured with a real LLM.** CI has no key, so those metrics describe sentence selection.
 3. **The abstention threshold is tuned on one corpus** and over-refuses 34.9% of answerable questions.
 4. **Token counts are a `chars/4` heuristic**, not a real tokenizer, so chunk sizes and context budgets are approximate.
-5. **Reranking dominates latency** at 783.67 ms per query on CPU.
+5. **Reranking dominates latency** — 1416.77 ms per query against BM25's 0.72 ms, and CI-runner timings vary about twofold run to run, so only the order of magnitude is meaningful.
 6. **The image is 7.29 GB**, mostly CUDA wheels nothing here uses.
 7. **Indexing is a full rebuild**, not an incremental upsert — correct at this size, wrong at scale.
 

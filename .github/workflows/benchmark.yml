@@ -76,8 +76,30 @@ jobs:
           print("neural embedder confirmed")
           PY
 
+      # Keep the committed numbers so the fresh run can be compared against them.
+      - name: Snapshot the committed results
+        run: |
+          mkdir -p /tmp/baseline
+          cp data/evaluation/results.json /tmp/baseline/results.json 2>/dev/null \
+            || echo "no committed results yet"
+
       - name: Run the full benchmark
         run: python scripts/benchmark.py --quiet
+
+      # Quality metrics are deterministic given the same corpus, dataset and
+      # backends; latency is not. Comparing only the former turns this into a
+      # reproducibility check, and stops the job committing a new file on every
+      # run purely because wall-clock timings moved.
+      - name: Compare against the committed numbers
+        id: compare
+        run: |
+          if python scripts/compare_results.py \
+               --baseline /tmp/baseline/results.json \
+               --candidate data/evaluation/results.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Print the report
         run: cat data/evaluation/report.md
@@ -113,15 +135,22 @@ jobs:
             enterprise-hybrid-rag/data/evaluation/results.json
             enterprise-hybrid-rag/data/evaluation/report.md
 
-      # [skip ci] on the commit stops this workflow retriggering itself.
+      # Only when a quality metric actually moved. [skip ci] on the commit stops
+      # this workflow retriggering itself.
       - name: Commit the regenerated results
+        if: steps.compare.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/evaluation/results.json data/evaluation/report.md
           if git diff --cached --quiet; then
-            echo "results unchanged; nothing to commit"
+            echo "nothing staged"
           else
             git commit -m "Regenerate benchmark results on the neural backends [skip ci]"
             git push
           fi
+
+      - name: Report reproducibility
+        if: steps.compare.outputs.changed == 'false'
+        run: echo "Quality metrics reproduced the committed numbers exactly; nothing to commit."
+

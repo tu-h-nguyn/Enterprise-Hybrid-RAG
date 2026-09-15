@@ -170,12 +170,14 @@ Reproduce with `python scripts/benchmark.py`, or read `data/evaluation/report.md
 
 | Configuration | R@1 | R@3 | R@5 | R@10 | MRR | nDCG@5 | P@5 | mean ms | p95 ms |
 |---|---|---|---|---|---|---|---|---|---|
-| Dense only | 0.5155 | 0.7946 | 0.8295 | 0.8527 | 0.6906 | 0.7199 | 0.2047 | 9.15 | 10.09 |
-| BM25 only | 0.5969 | 0.8256 | 0.9070 | 0.9302 | 0.7694 | 0.8001 | 0.2233 | **0.50** | **0.57** |
-| Hybrid (RRF) | 0.5620 | 0.7946 | 0.8372 | 0.8837 | 0.7362 | 0.7513 | 0.2093 | 9.41 | 11.03 |
-| **Hybrid + Reranker** | **0.7016** | **0.8953** | **0.9186** | **0.9767** | **0.8568** | **0.8610** | **0.2233** | 783.67 | 850.19 |
+| Dense only | 0.5155 | 0.7946 | 0.8295 | 0.8527 | 0.6906 | 0.7199 | 0.2047 | 16.93 | 21.28 |
+| BM25 only | 0.5969 | 0.8256 | 0.9070 | 0.9302 | 0.7694 | 0.8001 | 0.2233 | **0.72** | **0.83** |
+| Hybrid (RRF) | 0.5620 | 0.7946 | 0.8372 | 0.8837 | 0.7362 | 0.7513 | 0.2093 | 17.14 | 20.69 |
+| **Hybrid + Reranker** | **0.7016** | **0.8953** | **0.9186** | **0.9767** | **0.8568** | **0.8610** | **0.2233** | 1416.77 | 1460.45 |
 
-Hybrid + Reranker leads every quality column, and costs **1567× more per query than BM25** (783.67 ms against 0.50 ms on a CPU runner). Reranking, not retrieval, is where the request time goes.
+Hybrid + Reranker leads every quality column, and costs **three orders of magnitude more per query than BM25** (1416.77 ms against 0.72 ms). Reranking, not retrieval, is where the request time goes.
+
+Those timings are an order of magnitude, not a figure. The identical configuration measured 783.67 ms on a different CI runner — see `git show dd144a8:enterprise-hybrid-rag/data/evaluation/results.json` — so shared runners vary about twofold, whereas every quality column reproduced exactly across the two runs.
 
 Recall@5 is high everywhere because 5 of 44 chunks is over 11% of the corpus, so **R@1 and MRR remain the discriminative metrics** and differences of a few points across 43 scored questions are within noise.
 
@@ -257,7 +259,7 @@ Produced by the **extractive** backend — sentence selection, not generation. T
 | mean citations per answer | 0.8372 |
 | **over_refusal_rate** (answerable questions refused) | **0.3488** |
 | **correct_refusal_rate** (unanswerable questions refused) | **0.8571** |
-| mean latency | 798.74 ms |
+| mean latency | 1408.75 ms |
 
 The gate correctly refuses **6 of 7** unanswerable questions and also refuses **15 of 43** answerable ones. Both rates are unchanged from the fallback run, which is itself informative: the gate's behaviour here is dominated by the extractive backend's exact-token matching rather than by retrieval quality, so improving the encoder did not move it. Measuring this properly needs a real LLM — point `LLM_BASE_URL` at a local Ollama server and re-run `scripts/evaluate.py --generation --judge`.
 
@@ -393,6 +395,15 @@ cover ingest → index → query end-to-end and the API via `TestClient`. Fixtur
 build a hermetic index in `tmp_path`, so the suite needs no network, no API key
 and no pre-existing index.
 
+A third workflow, `.github/workflows/benchmark.yml`, re-measures on the neural
+backends and then runs `scripts/compare_results.py` against the committed
+numbers. It compares **quality metrics only** — those are deterministic given
+the same corpus, dataset and backends, while latency is wall-clock and moves
+every run — so results are re-committed only when a quality metric actually
+changed, rather than on every run because timings drifted. Two independent runs
+on different runners agreed on all **698** compared values, which is the
+strongest reproducibility claim in this repository.
+
 CI (`.github/workflows/ci.yml`) runs two jobs on every pull request:
 
 * **Tests and dataset audit** — the suite, then ingest, then a label audit, then
@@ -425,10 +436,11 @@ Stated plainly, because each one bounds how far the numbers above generalise.
    within noise. Nothing here has been shown to hold at enterprise scale, and
    the per-type rows rest on 6–14 questions each, which is few enough that a
    single question moves a row by 7–17 points.
-4. **Reranking dominates latency** at 783.67 ms per query on a CPU runner, against
-   0.50 ms for BM25 alone. Any deployment has to decide whether that precision is
-   worth three orders of magnitude of latency, or whether to rerank only when the
-   fusion margin is narrow.
+4. **Reranking dominates latency** — 1416.77 ms per query against 0.72 ms for
+   BM25 alone. Any deployment has to decide whether that precision is worth three
+   orders of magnitude of latency, or whether to rerank only when the fusion
+   margin is narrow. CI-runner timings vary about twofold between runs, so only
+   the order of magnitude should be relied on.
 5. **The no-answer threshold is tuned on one corpus** and is currently
    over-conservative: 34.9% of answerable questions are refused, including
    **every** paraphrased question. It has not been validated anywhere else and
