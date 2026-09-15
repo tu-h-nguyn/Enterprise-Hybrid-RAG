@@ -202,14 +202,14 @@ jobs:
           cp data/evaluation/scale_results.json /tmp/baseline/scale_results.json 2>/dev/null \
             || echo "no committed scale results yet"
 
-      # --extra-chunk-sizes 256 answers the question the chunk-size ablation
-      # raised and could not settle: 256 beats the shipped 500 by 9.3 points of
-      # Recall@1 on 44 chunks, but a chunk size that only wins on a tiny corpus
-      # is a fact about the corpus. The extra sweep runs against exhaustive
-      # search only, because whether HNSW costs recall is a separate question
-      # this job already answers at the configured chunk size.
+      # The extra sweep is what settled the shipped chunk size, and it keeps
+      # running so the decision stays checkable rather than becoming folklore:
+      # 256 is now the default, so 500 is the alternative being measured
+      # against it. The extra size runs against exhaustive search only, because
+      # whether HNSW costs recall is a separate question this job already
+      # answers at the configured chunk size.
       - name: Run the scale experiment
-        run: python scripts/scale_experiment.py --quiet --extra-chunk-sizes 256
+        run: python scripts/scale_experiment.py --quiet --extra-chunk-sizes 500
 
       # The embedder must be the neural one *and* must hold its width at 384
       # across every corpus size. The tfidf_svd fallback derives its dimension

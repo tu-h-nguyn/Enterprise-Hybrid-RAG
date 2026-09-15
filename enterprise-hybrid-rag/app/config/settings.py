@@ -34,8 +34,14 @@ class Settings(BaseSettings):
     evaluation_dir: Path = PROJECT_ROOT / "data" / "evaluation"
 
     # -------------------------------------------------------------- chunking
-    chunk_size_tokens: int = Field(500, ge=64, le=4096)
-    chunk_overlap_tokens: int = Field(100, ge=0, le=2048)
+    # 256 rather than 500, decided by measurement rather than by convention:
+    # `scripts/scale_experiment.py --extra-chunk-sizes 500` runs both sizes over
+    # corpora from 44 to ~8500 chunks, and 256 wins Recall@1, MRR and nDCG@5 at
+    # every size while halving reranking latency. See the corpus-scale section
+    # of the README for the trade-off it loses (Recall@5) and why that one is
+    # partly a context-budget artefact.
+    chunk_size_tokens: int = Field(256, ge=64, le=4096)
+    chunk_overlap_tokens: int = Field(51, ge=0, le=2048)   # 20% of the chunk size
     min_chunk_tokens: int = Field(24, ge=1)
     merge_small_sections: bool = True
     chars_per_token: float = Field(
