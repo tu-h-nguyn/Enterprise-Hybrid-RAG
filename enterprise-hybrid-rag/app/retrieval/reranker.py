@@ -48,7 +48,8 @@ class BaseReranker(abc.ABC):
         if not candidates:
             return []
         scores = self.score(query, [c.chunk.text for c in candidates])
-        order = sorted(zip(candidates, scores), key=lambda pair: -pair[1])[: max(top_k, 1)]
+        order = sorted(zip(candidates, scores, strict=True),
+                       key=lambda pair: -pair[1])[: max(top_k, 1)]
         out: list[RetrievedChunk] = []
         for rank, (candidate, score) in enumerate(order, start=1):
             component_scores = dict(candidate.component_scores)
@@ -111,7 +112,7 @@ class LexicalReranker(BaseReranker):
         if corpus_tokens:
             self.fit(corpus_tokens)
 
-    def fit(self, corpus_tokens: list[list[str]]) -> "LexicalReranker":
+    def fit(self, corpus_tokens: list[list[str]]) -> LexicalReranker:
         n_docs = len(corpus_tokens)
         document_frequency: dict[str, int] = {}
         for tokens in corpus_tokens:

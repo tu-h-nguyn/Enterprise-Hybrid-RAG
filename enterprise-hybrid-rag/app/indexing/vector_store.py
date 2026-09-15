@@ -13,6 +13,7 @@ instead of leaking a backend detail into the retrievers.
 from __future__ import annotations
 
 import abc
+import contextlib
 import logging
 from pathlib import Path
 from typing import Any
@@ -100,12 +101,18 @@ class ChromaVectorStore(BaseVectorStore):
             where=where or None,
             include=["documents", "metadatas", "distances"],
         )
+        # Chroma types every field of a result as optional, so narrow once here
+        # rather than indexing through Optionals at each use.
+        ids = result.get("ids") or [[]]
+        documents = result.get("documents") or [[]]
+        metadatas = result.get("metadatas") or [[]]
+        distances = result.get("distances") or [[]]
+
         out: list[tuple[Chunk, float]] = []
-        ids = result.get("ids", [[]])[0]
-        for i, chunk_id in enumerate(ids):
-            text = (result["documents"][0][i] or "")
-            meta = result["metadatas"][0][i] or {}
-            distance = float(result["distances"][0][i])
+        for i, chunk_id in enumerate(ids[0]):
+            text = str(documents[0][i] or "")
+            meta = dict(metadatas[0][i] or {})
+            distance = float(distances[0][i])
             out.append((Chunk.from_flat(chunk_id, text, meta), 1.0 - distance))
         return out
 
@@ -113,10 +120,8 @@ class ChromaVectorStore(BaseVectorStore):
         return int(self._collection.count())
 
     def reset(self) -> None:
-        try:
+        with contextlib.suppress(Exception):  # collection may not exist yet
             self._client.delete_collection(self._collection_name)
-        except Exception:  # collection may not exist yet
-            pass
         self._collection = self._client.get_or_create_collection(
             name=self._collection_name, metadata={"hnsw:space": "cosine"})
 
@@ -124,8 +129,11 @@ class ChromaVectorStore(BaseVectorStore):
         if self.count() == 0:
             return []
         data = self._collection.get(include=["documents", "metadatas"])
-        return [Chunk.from_flat(cid, doc or "", meta or {})
-                for cid, doc, meta in zip(data["ids"], data["documents"], data["metadatas"])]
+        ids = data.get("ids") or []
+        documents = data.get("documents") or []
+        metadatas = data.get("metadatas") or []
+        return [Chunk.from_flat(cid, str(doc or ""), dict(meta or {}))
+                for cid, doc, meta in zip(ids, documents, metadatas, strict=True)]
 
     def delete_document(self, document_id: str) -> int:
         before = self.count()
@@ -149,7 +157,7 @@ class NumpyVectorStore(BaseVectorStore):
         vectors = np.asarray(embeddings, dtype=np.float32)
         norms = np.linalg.norm(vectors, axis=1, keepdims=True)
         vectors = vectors / np.clip(norms, 1e-12, None)
-        for chunk, vector in zip(chunks, vectors):
+        for chunk, vector in zip(chunks, vectors, strict=True):
             if chunk.chunk_id in self._chunks:
                 position = self._ids.index(chunk.chunk_id)
                 assert self._matrix is not None

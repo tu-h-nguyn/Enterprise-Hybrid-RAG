@@ -1,0 +1,62 @@
+# Tooling configuration. Dependencies stay in requirements.txt so the documented
+# install path is unchanged; this file configures the checks that run over them.
+
+[tool.ruff]
+# 110 rather than a round number: the existing code sits just under it, with
+# only two lines over. A stricter limit would mean reflowing 29 lines of
+# reviewed, working code and its carefully wrapped docstrings for no gain.
+line-length = 110
+target-version = "py311"
+extend-exclude = [".venv", "data"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "E402",     # module import not at top: the scripts silence this deliberately
+    "F",        # pyflakes
+    "I",        # import sorting
+    "UP",       # pyupgrade: flag syntax kept alive past its Python version
+    "B",        # bugbear: real bug patterns, not style
+    "C4",       # comprehension clarity
+    "SIM",      # simplifications
+    "RUF",      # ruff's own rules
+]
+ignore = [
+    # The codebase deliberately uses `x | None` and `from __future__ import
+    # annotations`; E501 is handled by line-length above.
+    "B008",    # function call in default argument: FastAPI's Depends/File idiom
+    "SIM108",  # ternary instead of if/else is not always more readable
+    "SIM905",  # would flatten a readable multi-line word list into one long literal
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests reach into private attributes deliberately, and assert on them.
+"tests/**" = ["SLF001"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+# Without this, every Field(...) default reads as a required argument and
+# constructing Settings() reports eighteen phantom missing arguments.
+plugins = ["pydantic.mypy"]
+python_version = "3.11"
+files = ["app", "scripts"]
+exclude = ["\\.venv", "data"]
+
+# Pragmatic rather than strict: the goal is to make the "type hints everywhere"
+# claim checkable, not to fight third-party stubs that do not exist.
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+strict_equality = true
+check_untyped_defs = true
+
+# These libraries ship no type information.
+[[tool.mypy.overrides]]
+module = [
+    "chromadb.*", "rank_bm25.*", "sentence_transformers.*", "sklearn.*",
+    "fitz.*", "pymupdf.*", "docx.*",
+]
+ignore_missing_imports = true

@@ -13,8 +13,14 @@ import pytest
 
 from app.evaluation.dataset import EvalQuestion, normalize
 from app.evaluation.generation_metrics import groundedness, token_f1
-from app.evaluation.retrieval_metrics import (RetrievalMetrics, hit_at_k, ndcg_at_k,
-                                              precision_at_k, recall_at_k, reciprocal_rank)
+from app.evaluation.retrieval_metrics import (
+    RetrievalMetrics,
+    hit_at_k,
+    ndcg_at_k,
+    precision_at_k,
+    recall_at_k,
+    reciprocal_rank,
+)
 
 RETRIEVED = ["a", "b", "c", "d", "e"]
 

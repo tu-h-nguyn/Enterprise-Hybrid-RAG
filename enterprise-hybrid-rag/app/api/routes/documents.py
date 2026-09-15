@@ -6,8 +6,13 @@ import time
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from app.api.deps import AppState, get_state
-from app.api.schemas.documents import (DocumentListResponse, DocumentSummary,
-                                       IndexRequest, IndexResponse, UploadResponse)
+from app.api.schemas.documents import (
+    DocumentListResponse,
+    DocumentSummary,
+    IndexRequest,
+    IndexResponse,
+    UploadResponse,
+)
 from app.services.document_service import DocumentServiceError
 
 logger = logging.getLogger(__name__)
@@ -34,7 +39,7 @@ def index_documents(payload: IndexRequest | None = None,
                     state: AppState = Depends(get_state)) -> IndexResponse:
     started = time.perf_counter()
     try:
-        bundle, chunks = state.documents.ingest_and_index()
+        bundle, _chunks = state.documents.ingest_and_index()
     except DocumentServiceError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
     except Exception as exc:  # pragma: no cover - defensive

@@ -5,7 +5,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.deps import AppState, get_state
-from app.api.schemas.query import (QueryMetadata, QueryRequest, QueryResponse, RetrievedChunkOut)
+from app.api.schemas.query import QueryMetadata, QueryRequest, QueryResponse, RetrievedChunkOut
 from app.services.rag_service import IndexNotReadyError
 
 logger = logging.getLogger(__name__)

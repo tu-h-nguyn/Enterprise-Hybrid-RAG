@@ -1,0 +1,7 @@
+# Development tooling. Not needed to run the project; CI installs it on top of
+# requirements.txt so the documented install path stays unchanged.
+-r requirements.txt
+
+ruff>=0.16          # lint + import sorting, configured in pyproject.toml
+mypy>=1.11          # type checking, so "type hints everywhere" is checkable
+pytest-cov>=5.0     # coverage measurement and the regression floor

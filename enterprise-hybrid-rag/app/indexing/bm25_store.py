@@ -29,7 +29,7 @@ class BM25Store:
         self._bm25: BM25Okapi | None = None
 
     # ------------------------------------------------------------------ build
-    def build(self, chunks: list[Chunk], index_texts: list[str] | None = None) -> "BM25Store":
+    def build(self, chunks: list[Chunk], index_texts: list[str] | None = None) -> BM25Store:
         texts = index_texts if index_texts is not None else [c.text for c in chunks]
         if len(texts) != len(chunks):
             raise ValueError("index_texts must align with chunks")
@@ -56,6 +56,7 @@ class BM25Store:
         tokens = tokenize(query, remove_stopwords=True) or tokenize(query)
         if not tokens:
             return []
+        assert self._bm25 is not None  # guaranteed by is_built above
         scores = self._bm25.get_scores(tokens)
         ranked = sorted(enumerate(scores), key=lambda kv: -kv[1])[: max(top_k, 1)]
         # BM25 returns 0.0 for chunks sharing no query term; those carry no
@@ -70,7 +71,7 @@ class BM25Store:
         with path.open("w", encoding="utf-8") as fh:
             fh.write(json.dumps({"__meta__": {"k1": self.k1, "b": self.b,
                                               "n": len(self._chunks)}}) + "\n")
-            for chunk, tokens in zip(self._chunks, self._tokens):
+            for chunk, tokens in zip(self._chunks, self._tokens, strict=True):
                 fh.write(json.dumps({"chunk": chunk.model_dump(), "tokens": tokens},
                                     ensure_ascii=False) + "\n")
         return path

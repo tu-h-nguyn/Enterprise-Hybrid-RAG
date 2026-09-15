@@ -7,8 +7,7 @@ the stripper.
 
 from __future__ import annotations
 
-from app.generation.answer import (parse_citation_indices, resolve_citations,
-                                   strip_invalid_citations)
+from app.generation.answer import parse_citation_indices, resolve_citations, strip_invalid_citations
 from app.models.document import Chunk, RetrievedChunk
 
 

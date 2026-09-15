@@ -16,11 +16,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import docx  # noqa: E402
-import fitz  # noqa: E402
-from docx.shared import Pt  # noqa: E402
+import docx
+import fitz
+from docx.shared import Pt
 
-from app.config.settings import get_settings  # noqa: E402
+from app.config.settings import get_settings
 
 Section = tuple[str, list[str]]
 
@@ -338,7 +338,8 @@ def render_pdf(path: Path, title: str, sections: list[Section]) -> None:
     doc = fitz.open()
     page = doc.new_page()
     margin, width, bottom = 62, 472, 782
-    y = margin
+    # A page cursor advanced by fractional line heights, not an integer.
+    y: float = margin
 
     def new_page() -> None:
         nonlocal page, y
@@ -353,7 +354,7 @@ def render_pdf(path: Path, title: str, sections: list[Section]) -> None:
                 new_page()
             page.insert_text((margin, y), line, fontsize=size, fontname=font)
             y += size * 1.38
-        y += gap
+        y += float(gap)
 
     write(title, 18, "hebo", 14)
     for heading, paragraphs in sections:
@@ -383,10 +384,20 @@ def render_docx(path: Path, title: str, sections: list[Section]) -> None:
 
 
 def main() -> None:
-    from demo_corpus_part2 import (CONTRACTOR_MD, EXTRA_HANDBOOK, EXTRA_SECURITY,
-                                   PROCUREMENT, RELEASE_MD, RETENTION_MD)
-    from demo_corpus_part3 import (HR_RECRUITMENT_MD, IT_SERVICE_DESK_MD,
-                                   MODEL_GOVERNANCE_MD, OFFICE_FACILITIES_MD)
+    from demo_corpus_part2 import (
+        CONTRACTOR_MD,
+        EXTRA_HANDBOOK,
+        EXTRA_SECURITY,
+        PROCUREMENT,
+        RELEASE_MD,
+        RETENTION_MD,
+    )
+    from demo_corpus_part3 import (
+        HR_RECRUITMENT_MD,
+        IT_SERVICE_DESK_MD,
+        MODEL_GOVERNANCE_MD,
+        OFFICE_FACILITIES_MD,
+    )
 
     settings = get_settings()
     raw = Path(settings.raw_dir)
@@ -408,10 +419,8 @@ def main() -> None:
     (raw / "model_governance_policy.md").write_text(MODEL_GOVERNANCE_MD, encoding="utf-8")
     (raw / "office_facilities_guide.md").write_text(OFFICE_FACILITIES_MD, encoding="utf-8")
 
-    from demo_corpus_part4 import (BCP_MD, DPA_MD, INCIDENT_MD, REMOTE_MD,
-                                   TRAVEL_MD, VENDOR_MD)
-    from demo_corpus_part5 import (CODE_OF_CONDUCT, COMPENSATION, DATA_QUALITY_MD,
-                                   ML_PLATFORM_MD)
+    from demo_corpus_part4 import BCP_MD, DPA_MD, INCIDENT_MD, REMOTE_MD, TRAVEL_MD, VENDOR_MD
+    from demo_corpus_part5 import CODE_OF_CONDUCT, COMPENSATION, DATA_QUALITY_MD, ML_PLATFORM_MD
 
     (raw / "travel_expense_policy.md").write_text(TRAVEL_MD, encoding="utf-8")
     (raw / "remote_work_policy.md").write_text(REMOTE_MD, encoding="utf-8")

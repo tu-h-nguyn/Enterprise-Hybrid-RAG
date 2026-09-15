@@ -383,8 +383,24 @@ in the logs, in `/health`, and in every evaluation artefact.
 ## Testing
 
 ```bash
-pytest                   # 101 tests
+pip install -r requirements-dev.txt
+
+ruff check .             # lint and import order, configured in pyproject.toml
+mypy                     # app/ and scripts/, 66 files, clean
+pytest --cov=app         # 101 tests, 72% line coverage
 ```
+
+`mypy` is configured pragmatically rather than strictly: `check_untyped_defs`,
+`no_implicit_optional` and `strict_equality` are on, third-party libraries that
+ship no stubs are excused by name, and the pydantic plugin is enabled — without
+it every `Field(...)` default reads as a required argument and constructing
+`Settings()` reports eighteen phantom missing arguments.
+
+Coverage is **72%**, with CI failing below 70%. The floor sits just under the
+current figure so it catches a regression without becoming a number to game.
+What is uncovered is mostly deliberate: the Chroma vector store (tests use the
+in-memory `NumpyVectorStore`, which is the point of having the abstraction) and
+the DOCX loader.
 
 Unit tests cover the PDF loader against a PDF generated in the test, chunker
 page/section provenance, RRF against a hand-computed example, BM25 and dense
@@ -406,8 +422,8 @@ strongest reproducibility claim in this repository.
 
 CI (`.github/workflows/ci.yml`) runs two jobs on every pull request:
 
-* **Tests and dataset audit** — the suite, then ingest, then a label audit, then
-  an API smoke test. The audit is a blocking gate on purpose: a chunker or
+* **Tests and dataset audit** — `ruff`, `mypy`, the suite under a 70% coverage
+  floor, then ingest, then a label audit, then an API smoke test. The audit is a blocking gate on purpose: a chunker or
   loader change can stop answer spans resolving, which would silently drive
   recall to zero and look exactly like a retrieval regression. This job pins the
   offline backends so it is deterministic — model output is not a stable thing

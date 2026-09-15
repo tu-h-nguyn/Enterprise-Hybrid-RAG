@@ -60,7 +60,7 @@ class RagService:
 
     # ------------------------------------------------------------- lifecycle
     @classmethod
-    def from_disk(cls, settings: Settings) -> "RagService":
+    def from_disk(cls, settings: Settings) -> RagService:
         service = cls(settings)
         bundle = IndexBuilder(settings).load()
         if bundle is not None:

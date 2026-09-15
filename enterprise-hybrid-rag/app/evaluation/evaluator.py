@@ -9,14 +9,14 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable
 
-from app.evaluation.dataset import EvalDataset, EvalQuestion, RelevanceResolver
+from app.evaluation.dataset import EvalDataset, RelevanceResolver
 from app.evaluation.generation_metrics import LLMJudge, score_answer
 from app.evaluation.retrieval_metrics import DEFAULT_KS, RetrievalMetrics
 from app.retrieval.context_builder import ContextBuilder
-from app.services.rag_service import RagService
+from app.services.rag_service import RagService, RetrievalMethod
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class RetrievalConfig:
     """One row of the comparison table."""
 
     label: str
-    method: str          # dense | sparse | hybrid
+    method: RetrievalMethod
     rerank: bool = False
 
     def as_dict(self) -> dict:
@@ -124,7 +124,8 @@ class GenerationEvaluator:
         self.judge = judge
 
     def run(self, dataset: EvalDataset, top_k: int = 5,
-            method: str | None = None, rerank: bool | None = None) -> GenerationRunResult:
+            method: RetrievalMethod | None = None,
+            rerank: bool | None = None) -> GenerationRunResult:
         builder: ContextBuilder = self.service.context_builder
         records: list[dict] = []
         judge_used = False
