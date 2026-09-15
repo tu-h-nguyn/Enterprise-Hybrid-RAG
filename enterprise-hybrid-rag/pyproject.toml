@@ -8,11 +8,12 @@
 line-length = 110
 target-version = "py311"
 extend-exclude = [".venv", "data"]
-# `scripts/` is on sys.path when a CLI runs and when the tests import one, so
-# its modules are first-party. Without this, import sorting classifies them as
-# third-party or first-party depending on which directory ruff was pointed at,
-# and `ruff check .` disagrees with `ruff check tests/`.
-src = [".", "scripts"]
+# `scripts/` and `frontend/` are on sys.path when a CLI or the Streamlit app
+# runs, and when the tests import one, so their modules are first-party.
+# Without this, import sorting classifies them as third-party or first-party
+# depending on which directory ruff was pointed at, and `ruff check .`
+# disagrees with `ruff check tests/`.
+src = [".", "scripts", "frontend"]
 
 [tool.ruff.lint]
 select = [
@@ -46,7 +47,7 @@ known-first-party = ["app"]
 # constructing Settings() reports eighteen phantom missing arguments.
 plugins = ["pydantic.mypy"]
 python_version = "3.11"
-files = ["app", "scripts"]
+files = ["app", "scripts", "frontend"]
 exclude = ["\\.venv", "data"]
 
 # Pragmatic rather than strict: the goal is to make the "type hints everywhere"

@@ -6,20 +6,67 @@ state lives in the API, which means the UI can be restarted without losing the
 index, and the API can be exercised without the UI.
 
     API_URL=http://localhost:8000 streamlit run frontend/streamlit_app.py
+
+With ``API_URL`` unset there is no API to talk to, so one is started inside this
+process on a loopback socket and the index is built if the host has none — see
+``frontend/embedded_api.py``. That is what makes a single-process host such as
+Streamlit Community Cloud work with no configuration at all. The UI still
+speaks HTTP to the same endpoints either way.
 """
 
 from __future__ import annotations
 
 import os
+import sys
+from pathlib import Path
 from typing import Any
 
 import httpx
 import streamlit as st
 
-API_URL = os.environ.get("API_URL", "http://localhost:8000").rstrip("/")
+# Streamlit puts the script's directory on sys.path, but say so explicitly
+# rather than rely on it: a host that launches the app differently would fail
+# on the import below with nothing to point at.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from embedded_api import EmbeddedApiError, ensure_index, start_embedded_api
+
 REQUEST_TIMEOUT_S = float(os.environ.get("UI_TIMEOUT_S", "120"))
 
 st.set_page_config(page_title="Enterprise Hybrid RAG", page_icon="📄", layout="wide")
+
+
+# --------------------------------------------------------------- where the API is
+@st.cache_resource(show_spinner="Starting the API in this process…")
+def _embedded_api() -> str:
+    """Started once per Streamlit session runtime, not once per rerun."""
+    return start_embedded_api()
+
+
+@st.cache_resource(show_spinner="Building the index from data/raw — first visit only…")
+def _embedded_index(base_url: str) -> dict:
+    return ensure_index(base_url)
+
+
+def _resolve_api() -> tuple[str, bool, str | None]:
+    """Returns (base URL, whether it is in-process, startup error if any)."""
+    configured = os.environ.get("API_URL", "").strip().rstrip("/")
+    if configured:
+        return configured, False, None
+    try:
+        base_url = _embedded_api()
+        _embedded_index(base_url)
+        return base_url, True, None
+    except EmbeddedApiError as exc:
+        return "", True, str(exc)
+
+
+API_URL, EMBEDDED, EMBED_ERROR = _resolve_api()
+
+# A public demo is one shared container: one visitor's upload changes what the
+# next visitor sees. So uploading is off by default when the API is embedded,
+# and on by default when someone is running their own.
+ALLOW_UPLOAD = os.environ.get("UI_ALLOW_UPLOAD", "0" if EMBEDDED else "1") == "1"
 
 
 # ----------------------------------------------------------------- transport
@@ -59,7 +106,13 @@ def _citation_label(citation: dict[str, Any]) -> str:
 
 # -------------------------------------------------------------------- sidebar
 st.sidebar.title("Enterprise Hybrid RAG")
-st.sidebar.caption(f"API: `{API_URL}`")
+st.sidebar.caption("API: in-process" if EMBEDDED else f"API: `{API_URL}`")
+
+if EMBED_ERROR:
+    st.sidebar.error(EMBED_ERROR)
+    st.error("The in-process API could not start, so there is nothing to query. "
+             "Set `API_URL` to a running API, or run `uvicorn app.main:app`.")
+    st.stop()
 
 health, health_error = _get("/health")
 if health_error:
@@ -94,26 +147,33 @@ top_k = st.sidebar.slider("Contexts passed to the LLM (top_k)", 1, 20, 5)
 
 st.sidebar.divider()
 st.sidebar.subheader("Documents")
-uploaded = st.sidebar.file_uploader("Upload PDF, DOCX or Markdown",
-                                    type=["pdf", "docx", "md", "markdown", "txt"])
-if uploaded is not None and st.sidebar.button("Upload", use_container_width=True):
-    payload, error = _post("/documents/upload",
-                           files={"file": (uploaded.name, uploaded.getvalue())})
-    if error:
-        st.sidebar.error(error)
-    else:
-        st.sidebar.success(f"Uploaded {payload['filename']} — now rebuild the index.")
+if ALLOW_UPLOAD:
+    uploaded = st.sidebar.file_uploader("Upload PDF, DOCX or Markdown",
+                                        type=["pdf", "docx", "md", "markdown", "txt"])
+    if uploaded is not None and st.sidebar.button("Upload", use_container_width=True):
+        payload, error = _post("/documents/upload",
+                               files={"file": (uploaded.name, uploaded.getvalue())})
+        if error or payload is None:
+            st.sidebar.error(error or "The upload returned no payload.")
+        else:
+            st.sidebar.success(f"Uploaded {payload['filename']} — now rebuild the index.")
 
-if st.sidebar.button("Rebuild index", use_container_width=True):
-    with st.spinner("Re-ingesting and rebuilding both indexes…"):
-        payload, error = _post("/documents/index", json={"rebuild": True})
-    if error:
-        st.sidebar.error(error)
-    else:
-        st.sidebar.success(
-            f"{payload['n_documents']} documents, {payload['n_chunks']} chunks "
-            f"in {payload['elapsed_ms']:.0f} ms")
-        st.rerun()
+    if st.sidebar.button("Rebuild index", use_container_width=True):
+        with st.spinner("Re-ingesting and rebuilding both indexes…"):
+            payload, error = _post("/documents/index", json={"rebuild": True})
+        if error or payload is None:
+            st.sidebar.error(error or "The index build returned no payload.")
+        else:
+            st.sidebar.success(
+                f"{payload['n_documents']} documents, {payload['n_chunks']} chunks "
+                f"in {payload['elapsed_ms']:.0f} ms")
+            st.rerun()
+else:
+    st.sidebar.caption(
+        "Uploading is disabled here: this is one shared container, so a document "
+        "one visitor adds would change what the next visitor sees. Run it locally "
+        "or set `UI_ALLOW_UPLOAD=1` to add your own."
+    )
 
 documents, documents_error = _get("/documents")
 if documents and documents.get("documents"):

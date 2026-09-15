@@ -24,7 +24,8 @@ BACKENDS = {
 def _scale_payload(chroma_mrr: float = 0.62, numpy_mrr: float = 0.63) -> dict:
     def size(store: str, mrr: float) -> dict:
         return {
-            "vector_backend": store, "n_chunks": 4658, "n_distractor_documents": 3400,
+            "vector_backend": store, "chunk_size_tokens": 500,
+            "n_chunks": 4658, "n_distractor_documents": 3400,
             "n_gold_chunks": 30, "embedding_dim": 384, "index_build_seconds": 155.0,
             "configs": [{"label": "Hybrid (RRF)", "metrics": {"recall@1": 0.4457, "mrr": mrr},
                          "latency_ms_mean": 54.63,
@@ -54,7 +55,19 @@ def test_scale_rows_are_keyed_by_store_as_well_as_size() -> None:
     """Both stores index the same corpus; colliding them would hide half the run."""
     view = quality_view(_scale_payload())
 
-    assert set(view["scale"]) == {"numpy/4658", "chroma/4658"}
+    assert set(view["scale"]) == {"numpy/c500/4658", "chroma/c500/4658"}
+
+
+def test_scale_rows_are_keyed_by_chunk_size_too() -> None:
+    """A second chunk size produces its own rows, which must not overwrite the first."""
+    payload = _scale_payload()
+    extra = json.loads(json.dumps(payload["sizes"][0]))
+    extra["chunk_size_tokens"] = 256
+    extra["n_chunks"] = 8137
+    payload["sizes"].append(extra)
+
+    assert set(quality_view(payload)["scale"]) == {
+        "numpy/c500/4658", "chroma/c500/4658", "numpy/c256/8137"}
 
 
 def test_interference_is_compared_too() -> None:
@@ -104,6 +117,29 @@ def test_allowed_drift_does_not_excuse_the_exact_rows(
     candidate = _write(tmp_path, "b.json", _scale_payload(chroma_mrr=0.6203, numpy_mrr=0.64))
     monkeypatch.setattr("sys.argv", ["compare_results.py", "--baseline", str(baseline),
                                      "--candidate", str(candidate),
+                                     "--allow-drift", "scale.chroma/"])
+
+    assert main() == 1
+
+
+def test_allowed_drift_does_not_excuse_a_row_that_appeared_or_vanished(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Drift means a value moved, never a row arriving or leaving.
+
+    This is not hypothetical. Changing the default chunk size swapped which
+    sizes each store was run at, so a whole set of `scale.chroma/...` rows was
+    replaced by a different set — and with the prefix allowed, the run reported
+    "reproduced exactly" and threw its own results away.
+    """
+    baseline = _scale_payload()
+    candidate = _scale_payload()
+    for row in candidate["sizes"]:
+        if row["vector_backend"] == "chroma":
+            row["chunk_size_tokens"] = 256      # a different key, not a changed value
+    left = _write(tmp_path, "a.json", baseline)
+    right = _write(tmp_path, "b.json", candidate)
+    monkeypatch.setattr("sys.argv", ["compare_results.py", "--baseline", str(left),
+                                     "--candidate", str(right),
                                      "--allow-drift", "scale.chroma/"])
 
     assert main() == 1

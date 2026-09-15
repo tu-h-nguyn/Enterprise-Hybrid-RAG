@@ -241,5 +241,33 @@ jobs:
 
           docker rm -f rag-api
 
-      - name: Report image sizes
-        run: docker images enterprise-hybrid-rag --format '{{.Repository}}:{{.Tag}}  {{.Size}}'
+      # The image was 7.29 GB because torch arrived from PyPI, where the Linux
+      # wheel is the CUDA build. The Dockerfile now takes the +cpu build from
+      # PyTorch's index instead. Both halves of that are asserted rather than
+      # noted: a silent fall back to the CUDA wheel would put the size straight
+      # back, and nothing else in the job would notice.
+      - name: Report image sizes and hold them to a ceiling
+        run: |
+          docker images enterprise-hybrid-rag --format '{{.Repository}}:{{.Tag}}  {{.Size}}'
+
+          version=$(docker run --rm enterprise-hybrid-rag:api python -c \
+                      'import torch; print(torch.__version__)')
+          echo "torch: $version"
+          case "$version" in
+            *+cpu) ;;
+            *) echo "::error::torch is '$version', not a +cpu build: the CUDA wheel"
+               echo "::error::came back and the image will be several GB larger."
+               exit 1 ;;
+          esac
+
+          bytes=$(docker image inspect enterprise-hybrid-rag:api --format '{{.Size}}')
+          gib=$(awk "BEGIN{printf \"%.2f\", $bytes/1073741824}")
+          echo "api image: $gib GiB (ceiling $IMAGE_CEILING_GIB GiB)"
+          awk "BEGIN{exit !($gib <= $IMAGE_CEILING_GIB)}" || {
+            echo "::error::The api image is $gib GiB, over the $IMAGE_CEILING_GIB GiB ceiling."
+            exit 1
+          }
+        env:
+          # Deliberately loose. This is a regression guard against the CUDA
+          # wheels coming back, not a size budget to optimise against.
+          IMAGE_CEILING_GIB: "4.0"

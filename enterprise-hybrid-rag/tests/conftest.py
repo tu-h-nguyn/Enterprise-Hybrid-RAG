@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-for _path in (ROOT, ROOT / "scripts"):  # scripts/ holds the benchmark CLIs
+for _path in (ROOT, ROOT / "scripts", ROOT / "frontend"):  # CLIs and the UI
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 

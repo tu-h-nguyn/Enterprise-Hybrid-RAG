@@ -158,7 +158,7 @@ The workflow **pins** the neural backends instead of using `auto`, and asserts a
 
 The LLM stays `extractive` in both runs, because CI has no API key. **Generation metrics therefore describe sentence selection, not a generative model**, in both columns.
 
-Measured on Python 3.11, Linux x86-64, 22 documents / 44 chunks at `chunk_size_tokens=500`, `rrf_k=60`, `dense_top_k = sparse_top_k = 20`.
+Measured on Python 3.11, Linux x86-64, 22 documents / 77 chunks at `chunk_size_tokens=256`, `rrf_k=60`, `dense_top_k = sparse_top_k = 20`.
 
 ---
 
@@ -170,57 +170,63 @@ Reproduce with `python scripts/benchmark.py`, or read `data/evaluation/report.md
 
 | Configuration | R@1 | R@3 | R@5 | R@10 | MRR | nDCG@5 | P@5 | mean ms | p95 ms |
 |---|---|---|---|---|---|---|---|---|---|
-| Dense only | 0.5155 | 0.7946 | 0.8295 | 0.8527 | 0.6906 | 0.7199 | 0.2047 | 16.93 | 21.28 |
-| BM25 only | 0.5969 | 0.8256 | 0.9070 | 0.9302 | 0.7694 | 0.8001 | 0.2233 | **0.72** | **0.83** |
-| Hybrid (RRF) | 0.5620 | 0.7946 | 0.8372 | 0.8837 | 0.7362 | 0.7513 | 0.2093 | 17.14 | 20.69 |
-| **Hybrid + Reranker** | **0.7016** | **0.8953** | **0.9186** | **0.9767** | **0.8568** | **0.8610** | **0.2233** | 1416.77 | 1460.45 |
+| Dense only | 0.5853 | 0.8256 | 0.8953 | 0.9302 | 0.7740 | 0.7869 | 0.2186 | 16.58 | 21.26 |
+| BM25 only | 0.6434 | 0.8023 | 0.8023 | 0.8023 | 0.7597 | 0.7660 | 0.2000 | **0.78** | **0.92** |
+| Hybrid (RRF) | 0.6434 | 0.8023 | 0.8488 | **1.0000** | 0.7910 | 0.7862 | 0.2093 | 17.04 | 18.41 |
+| **Hybrid + Reranker** | **0.7946** | **0.8953** | 0.9070 | **1.0000** | **0.9085** | **0.8937** | **0.2233** | 699.95 | 781.92 |
 
-Hybrid + Reranker leads every quality column, and costs **three orders of magnitude more per query than BM25** (1416.77 ms against 0.72 ms). Reranking, not retrieval, is where the request time goes.
+Hybrid + Reranker leads every quality column except Recall@5, and costs **nearly three orders of magnitude more per query than BM25** (699.95 ms against 0.78 ms). Reranking, not retrieval, is where the request time goes.
 
-Those timings are an order of magnitude, not a figure. The identical configuration measured 783.67 ms on a different CI runner — see `git show dd144a8:enterprise-hybrid-rag/data/evaluation/results.json` — so shared runners vary about twofold, whereas every quality column reproduced exactly across the two runs.
+Two columns say more than the headline. **BM25 recall is identical at R@3, R@5 and R@10** (0.8023): it finds the chunk in the first three results or it never finds it, which is what a lexical matcher does when the query's words are not in the text. And **both fused configurations reach 1.0000 at R@10** — everything this corpus can answer is inside ten candidates, so from there the problem is entirely ranking, which is what the reranker is for. That is also why the reranker can reach 0.7946 at R@1 without a better retriever underneath it.
 
-Recall@5 is high everywhere because 5 of 44 chunks is over 11% of the corpus, so **R@1 and MRR remain the discriminative metrics** and differences of a few points across 43 scored questions are within noise.
+Those timings are an order of magnitude, not a figure. The same pipeline over the same 77 chunks measured 685.39 ms in the corpus-scale run — a different runner, and the exhaustive vector store rather than Chroma — whereas every quality column reproduces exactly.
+
+The smaller default halved this. In one sweep, on one runner, the reranked pipeline runs at 685.39 ms over 77 chunks of 256 tokens and 1370.06 ms over 44 chunks of 500: the cross-encoder scores passages half as long, and it is the whole latency budget.
+
+Recall@5 is high everywhere because 5 of 77 chunks is 6.5% of the corpus, so **R@1 and MRR remain the discriminative metrics** and differences of a few points across 43 scored questions are within noise.
 
 ### What changed when real models replaced the fallbacks
 
 | Configuration | R@1 fallback | R@1 neural | Δ | MRR fallback | MRR neural | Δ |
 |---|---|---|---|---|---|---|
-| Dense only | 0.6550 | 0.5155 | **−0.1395** | 0.8128 | 0.6906 | **−0.1222** |
-| BM25 only | 0.5969 | 0.5969 | ±0.0000 | 0.7694 | 0.7694 | ±0.0000 |
-| Hybrid (RRF) | 0.6318 | 0.5620 | **−0.0698** | 0.7953 | 0.7362 | **−0.0591** |
-| **Hybrid + Reranker** | 0.6667 | **0.7016** | **+0.0349** | 0.7884 | **0.8568** | **+0.0684** |
+| Dense only | 0.6550 | 0.5853 | **−0.0697** | 0.7785 | 0.7740 | −0.0045 |
+| BM25 only | 0.6434 | 0.6434 | ±0.0000 | 0.7597 | 0.7597 | ±0.0000 |
+| Hybrid (RRF) | 0.6550 | 0.6434 | −0.0116 | 0.7784 | 0.7910 | +0.0126 |
+| **Hybrid + Reranker** | 0.6434 | **0.7946** | **+0.1512** | 0.7541 | **0.9085** | **+0.1544** |
 
-Three of four configurations got **worse** with a better embedder. BM25 is unchanged, as it must be — it does not use the embedder, and the identical numbers are a useful sanity check that nothing else drifted between runs.
+A better embedder made **dense retrieval on its own worse**, left BM25 exactly where it was, and moved plain fusion by less than a question. Only the full pipeline gained, and it gained a great deal: +0.1512 R@1 and +0.1544 MRR.
 
-The explanation is entirely in the per-type breakdown below: the TF-IDF fallback's character n-grams matched reference codes **literally**, scoring a perfect 1.0000 on keyword questions. A sentence encoder compresses `HB-7.2` into a dense vector and loses it. What MiniLM buys instead is the only real paraphrase handling in the system.
+BM25 is unchanged, as it must be — it does not use the embedder — and the identical numbers are a useful sanity check that nothing else drifted between the two runs.
+
+The explanation is entirely in the per-type breakdown below: the TF-IDF fallback's character n-grams matched reference codes **literally**, scoring a perfect 1.0000 on keyword questions with what the manifest calls a "dense" retriever. A sentence encoder compresses `HB-7.2` into a dense vector and loses it. What MiniLM buys instead is the only real paraphrase handling in the system — and it is the cross-encoder that turns that trade into a net gain rather than a wash.
 
 ### Recall@1 by question type — where the retrievers actually differ
 
 | Configuration | factual | keyword | multi_step | paraphrased | terminology |
 |---|---|---|---|---|---|
-| Dense only | 0.8571 | 0.2857 | 0.3095 | **0.3333** | 0.5000 |
-| BM25 only | 0.8571 | 0.8571 | 0.3810 | 0.0000 | 0.8333 |
-| Hybrid (RRF) | 0.8571 | 0.2857 | **0.4524** | 0.2222 | 0.8333 |
-| **Hybrid + Reranker** | **0.9286** | **1.0000** | **0.4524** | 0.2222 | 0.8333 |
+| Dense only | 0.9286 | 0.4286 | **0.4524** | **0.4444** | 0.3333 |
+| BM25 only | 0.8571 | **1.0000** | 0.3810 | 0.1111 | 0.8333 |
+| Hybrid (RRF) | **1.0000** | 0.5714 | 0.3810 | 0.2222 | 0.8333 |
+| **Hybrid + Reranker** | **1.0000** | **1.0000** | **0.4524** | **0.4444** | **1.0000** |
 
 ### MRR by question type
 
 | Configuration | factual | keyword | multi_step | paraphrased | terminology |
 |---|---|---|---|---|---|
-| Dense only | 0.9286 | 0.3492 | 0.8571 | **0.4907** | 0.6389 |
-| BM25 only | 0.9107 | 0.9286 | 0.9286 | 0.2037 | 0.9167 |
-| Hybrid (RRF) | 0.9286 | 0.4762 | **1.0000** | 0.3472 | 0.8667 |
-| **Hybrid + Reranker** | **0.9643** | **1.0000** | **1.0000** | 0.4270 | **0.9167** |
+| Dense only | 0.9643 | 0.4762 | **1.0000** | **0.6056** | 0.6667 |
+| BM25 only | 0.9167 | **1.0000** | 0.9286 | 0.1111 | 0.8889 |
+| Hybrid (RRF) | **1.0000** | 0.6766 | 0.9286 | 0.3825 | 0.8889 |
+| **Hybrid + Reranker** | **1.0000** | **1.0000** | **1.0000** | 0.5626 | **1.0000** |
 
 Four findings, including the ones that are inconvenient:
 
-1. **The two retrievers fail in opposite directions, and this is now measured rather than asserted.** Dense reaches 0.3333 on paraphrased questions where BM25 scores exactly 0.0000; BM25 reaches 0.8571 on keyword questions where dense manages 0.2857. Neither is better. This is the whole premise of hybrid retrieval, and it only became visible with a real encoder — under the fallback, the "dense" arm was itself lexical and scored 1.0000 on keyword questions by accident.
+1. **The two retrievers fail in opposite directions, and this is now measured rather than asserted.** Dense reaches 0.4444 on paraphrased questions where BM25 scores 0.1111; BM25 reaches a perfect 1.0000 on keyword questions where dense manages 0.4286. Neither is better. This is the whole premise of hybrid retrieval, and it only became visible with a real encoder — under the fallback, the "dense" arm was itself lexical and scored 1.0000 on keyword questions by accident.
 
-2. **The reranker is what makes the combination pay.** Plain RRF inherits dense's keyword weakness (0.2857) because fusion cannot recover a document neither arm ranked well. The cross-encoder, reading query and chunk jointly, restores keyword to a perfect 1.0000 while keeping the semantic gain — and unlike in the fallback run it improves R@5 and R@10 as well, so it is no longer trading recall for precision.
+2. **The reranker is what makes the combination pay, and fusion alone is not enough.** Plain RRF scores 0.5714 on keyword and 0.2222 on paraphrased — *worse than BM25 and worse than dense respectively*, on the categories each of them owns. Fusion averages two disagreeing rankings and lands between them. The cross-encoder, reading query and chunk jointly, restores keyword to 1.0000 and paraphrase to dense's own 0.4444, and reaches a perfect MRR on four of the five answerable categories.
 
-3. **Paraphrase remains the weakest retrieval story**, at 0.2222–0.3333. Better than the fallback's 0.0000–0.1111, but far from solved. Note that plain dense (0.3333) beats the full pipeline (0.2222) here: the cross-encoder is itself trained on lexical-ish relevance and sometimes demotes a semantically right chunk that shares no words with the query.
+3. **Paraphrase remains the weakest retrieval story.** The pipeline ties plain dense at 0.4444 R@1, but dense still has the better MRR (0.6056 against 0.5626): the cross-encoder is itself trained on lexical-ish relevance and sometimes demotes a semantically right chunk that shares no words with the query. Better than the fallback's 0.1111, and far from solved.
 
-4. **`multi_step` is the weakest answerable category overall** (0.4524). These need evidence from two or more documents, and nothing in this pipeline decomposes a question or retrieves iteratively. That is the honest next problem.
+4. **`multi_step` is the weakest answerable category overall** (0.4524 R@1 — though a perfect 1.0000 MRR, because the *first* relevant chunk is always ranked first and what is missing is the second one). These need evidence from two or more documents, and nothing in this pipeline decomposes a question or retrieves iteratively. No amount of reranking fixes it. That is the honest next problem.
 
 ### Chunk-size ablation
 
@@ -228,11 +234,11 @@ The corpus is re-ingested and both indexes rebuilt at each size, with ground tru
 
 | Chunk size | Chunks | Mean tokens | Configuration | R@1 | R@5 | MRR | nDCG@5 |
 |---|---|---|---|---|---|---|---|
-| **256** | 77 | 192.6 | Dense only | 0.5853 | 0.8953 | 0.7740 | 0.7869 |
+| **256** *(default)* | 77 | 192.6 | Dense only | 0.5853 | 0.8953 | 0.7740 | 0.7869 |
 | | | | BM25 only | 0.6434 | 0.8023 | 0.7597 | 0.7660 |
 | | | | Hybrid (RRF) | 0.6434 | 0.8488 | 0.7910 | 0.7862 |
 | | | | **Hybrid + Reranker** | **0.7946** | 0.9070 | **0.9085** | **0.8937** |
-| **500** *(default)* | 44 | 337.4 | Dense only | 0.5155 | 0.8295 | 0.6906 | 0.7199 |
+| **500** | 44 | 337.4 | Dense only | 0.5155 | 0.8295 | 0.6906 | 0.7199 |
 | | | | BM25 only | 0.5969 | 0.9070 | 0.7694 | 0.8001 |
 | | | | Hybrid (RRF) | 0.5620 | 0.8372 | 0.7362 | 0.7513 |
 | | | | **Hybrid + Reranker** | 0.7016 | 0.9186 | 0.8568 | 0.8610 |
@@ -241,16 +247,37 @@ The corpus is re-ingested and both indexes rebuilt at each size, with ground tru
 | | | | Hybrid (RRF) | 0.6318 | 0.8527 | 0.7870 | 0.7850 |
 | | | | **Hybrid + Reranker** | 0.7481 | **0.9535** | 0.8747 | 0.8857 |
 
-**The shipped default of 500 tokens is the worst of the three at R@1 and MRR for the production configuration** — 0.7016 against 0.7946 at 256, a gap of 9.3 points. Smaller chunks give the cross-encoder a tighter passage to judge and dilute each chunk's content less. 800 wins R@5 (0.9535), but a longer chunk makes a "hit" cover more text, so that metric flatters larger sizes by construction.
+**256 tokens beats 500 by 9.3 points of R@1 for the production configuration**, 0.7946 against 0.7016, and by 5.2 points of MRR. Smaller chunks give the cross-encoder a tighter passage to judge and dilute each chunk's content less. 800 wins R@5 (0.9535), but a longer chunk makes a "hit" cover more text, so that metric flatters larger sizes by construction.
 
-The default has not been changed here, because one 50-question corpus is not enough evidence to re-tune a default on, and because doing so would invalidate the comparison this table exists to make. It is recorded as the first thing to revisit.
+This table used to end with a shrug. The default stayed at 500 on the grounds
+that one 50-question corpus of 44 chunks is not enough evidence to re-tune a
+default on — a chunk size that wins on a corpus that small might be a fact about
+the corpus rather than about chunking.
+
+That objection was answerable, so it was answered. The [corpus-scale
+experiment](#corpus-scale-experiment) below runs both sizes over corpora from 44
+up to roughly 8500 chunks, and 256 wins Recall@1 at every one of them, by 0.0930
+at the largest, with the gap refusing to shrink as the corpus grows. It also
+halves reranking latency, because the cross-encoder scores passages half as
+long. **The default is now 256**, and the benchmark workflow runs 500 as the
+alternative against it, so the decision stays checkable rather than becoming
+folklore.
+
+What that costs is the Recall@5 column above, and it is worth being precise
+about why it is not decisive. Five chunks of 500 tokens hand the generator twice
+the text that five chunks of 256 do, so the larger sizes enter that metric with
+double the context budget. The metrics where a longer chunk is *structurally*
+advantaged are R@1 and MRR — a bigger chunk is a bigger target to hit — and 256
+wins those anyway. A like-for-like comparison at a fixed context budget,
+`top_k=10` at 256 against `top_k=5` at 500, is the follow-up this does not
+attempt.
 
 ### Corpus-scale experiment
 
-Every table above is computed on 44 chunks, 30 of which are the answer to some
-question. That is a haybale, not a haystack: top-5 covers more than a tenth of
-the corpus, Recall@5 saturates, and none of it answers whether the ranking
-survives a realistic index.
+Every table above is computed on 77 chunks, 40 of which are the answer to some
+question. That is a haybale, not a haystack: top-5 covers 6.5% of the corpus,
+Recall@5 saturates, and none of it answers whether the ranking survives a
+realistic index.
 
 So the 50 questions, their answer spans, the chunking and every retrieval
 setting were pinned, and only the corpus grew — with distractor documents on the
@@ -262,25 +289,32 @@ have stayed flat, and the result would have been a rigged win.
 
 Sizes are nested prefixes of one distractor set, so each corpus strictly
 contains the smaller one, and everything is built in a temporary directory so
-the served index is untouched. Recall@1, exhaustive search:
+the served index is untouched. Recall@1, exhaustive search, at the shipped
+256-token chunk size:
 
 | Chunks | Documents | Gold share | Dense | BM25 | Hybrid (RRF) | **Hybrid + Reranker** |
 |---:|---:|---:|---:|---:|---:|---:|
-| 44 | 22 | 68.18% | 0.5155 | 0.5969 | 0.5620 | **0.7016** |
-| 235 | 162 | 12.77% | 0.4574 | 0.5504 | 0.5039 | **0.6550** |
-| 936 | 677 | 3.21% | 0.4109 | 0.5504 | 0.4806 | **0.6318** |
-| 4658 | 3422 | 0.64% | 0.3643 | 0.5736 | 0.4457 | **0.6318** |
-| | | **change** | **−0.1512** | −0.0233 | −0.1163 | **−0.0698** |
+| 77 | 22 | 51.95% | 0.5853 | 0.6434 | 0.6434 | **0.7946** |
+| 423 | 162 | 9.46% | 0.4690 | 0.6085 | 0.5853 | **0.7248** |
+| 1704 | 677 | 2.35% | 0.4341 | 0.5969 | 0.5620 | **0.7248** |
+| 8548 | 3422 | 0.47% | 0.3798 | 0.5969 | 0.4922 | **0.7248** |
+| | | **change** | **−0.2055** | −0.0465 | −0.1512 | **−0.0698** |
 
-Dense retrieval gives up 29% of its Recall@1 across the range. The reranked
-pipeline gives up 10%, and its Recall@5 falls only from 0.9186 to 0.8566. The
-reranker is worth +0.1861 R@1 over dense alone at 44 chunks and **+0.2675** at
-4658: its value is not constant, it *grows* with the corpus. That is the
-argument for paying its latency, and it is invisible at 44 chunks.
+Dense retrieval gives up 35% of its Recall@1 across the range. The reranked
+pipeline gives up 9% and then **stops**: 0.7248 at 423 chunks, 0.7248 at 1704,
+0.7248 at 8548 — flat across a twentyfold growth in the haystack, while the gold
+chunk goes from one in 1.9 to one in 213. Its Recall@5 falls from 0.9070 to
+0.8062.
 
-BM25 is nearly flat (−0.0233, which is one question), which is the expected
-shape — exact lexical matching does not care how much other text exists, only
-whether something else matches better.
+The reranker is worth +0.2093 R@1 over dense alone at 77 chunks and **+0.3450**
+at 8548. Its value is not constant — it *grows* with the corpus, which is the
+argument for paying its latency and is invisible at the size the rest of this
+README measures.
+
+BM25 is nearly flat (−0.0465, two questions), which is the expected shape: exact
+lexical matching does not care how much other text exists, only whether
+something else matches better. Plain RRF sits between the two and degrades with
+its dense arm.
 
 #### Are the distractors actually hard?
 
@@ -290,48 +324,76 @@ share of the top 5 they hold:
 
 | Chunks | Dense distr@1 | Dense distr%@5 | Reranked distr@1 | Reranked distr%@5 |
 |---:|---:|---:|---:|---:|
-| 235 | 0.2326 | 0.5535 | 0.1163 | 0.4233 |
-| 936 | 0.3488 | 0.6837 | 0.1860 | 0.5581 |
-| 4658 | 0.4186 | 0.7814 | 0.1628 | 0.6093 |
+| 423 | 0.2791 | 0.5302 | 0.1628 | 0.4651 |
+| 1704 | 0.3256 | 0.6698 | 0.1628 | 0.5581 |
+| 8548 | 0.4186 | 0.7535 | 0.1628 | 0.5814 |
 
 At the largest size the distractors take rank 1 on 42% of questions under dense
-retrieval and hold 78% of the top 5. They compete.
+retrieval and hold 75% of the top 5. They compete. The reranked pipeline holds
+its own rate at a flat 0.1628 from 423 chunks upward — the same shape as its
+Recall@1.
+
+#### Does the shipped chunk size still win?
+
+The sweep runs the whole ladder again at 500 tokens, the size this project used
+to ship, against exhaustive search. Corpus sizes are matched by how many
+distractor *documents* were added, because the same documents become a different
+number of chunks at each size. Hybrid + reranker:
+
+| Distractor docs | 256 tok — chunks / R@1 / MRR | 500 tok — chunks / R@1 / MRR |
+|---:|---:|---:|
+| 0 | 77 / **0.7946** / **0.9085** | 44 / 0.7016 / 0.8568 |
+| 140 | 423 / **0.7248** / **0.8384** | 235 / 0.6550 / 0.8101 |
+| 655 | 1704 / **0.7248** / **0.8289** | 936 / 0.6318 / 0.7950 |
+| 3400 | 8548 / **0.7248** / **0.8285** | 4658 / 0.6318 / 0.7868 |
+
+256 wins Recall@1 at every size, by 0.0930 at the largest, and the gap does not
+shrink as the corpus grows — which is what moved the default. These rows
+reproduced exactly against the previous run, on a different runner, with the
+roles of default and alternative swapped between the two runs.
+
+What 500 wins is Recall@5, 0.8566 against 0.8062 at the largest corpus, and that
+comparison is not like-for-like: five chunks of 500 tokens hand the generator
+twice the text that five chunks of 256 do. Gold-set sizes are identical at both
+chunk sizes — mean 1.209 relevant chunks per question, distribution
+`{1: 36, 2: 5, 3: 2}` — so none of this is a labelling artefact; that was checked
+rather than assumed.
 
 #### What approximate search costs
 
 Each size was also run against both vector stores — Chroma's HNSW index and
 exhaustive cosine — because the difference is normally assumed rather than
 measured. With `all-MiniLM-L6-v2`, **Recall@1 is identical for every
-configuration at every size**, and the reranked pipeline matches on every metric.
-Dense-only and hybrid differ only from rank 3 down, by one or two questions
-(0.02–0.05 on recall at depth). BM25 never touches the vector store and
-reads identical everywhere, which is the control confirming nothing else
-differed between the two runs.
+configuration at every size**, and the single difference anywhere in the sweep is
+0.0023 of dense MRR at 8548 chunks. BM25 never touches the vector store and reads
+identical everywhere, which is the control confirming nothing else differed.
 
-Those few HNSW values are also the only ones in the experiment that do not
-reproduce: two runs on different GitHub runners agreed on **689 of 696** quality
-values, and all seven that moved were Chroma rows — not one of them Recall@1.
-That is the finding rather than a defect, so CI encodes it:
-`compare_results.py --allow-drift 'scale.chroma/'` holds exhaustive search to
-bit equality and prints the approximate index's drift instead of quietly
-committing it.
+Those HNSW rows are also the only ones that do not reproduce between runs, which
+CI now encodes rather than fights: `compare_results.py --allow-drift
+'scale.chroma/'` holds exhaustive search to bit equality and prints the
+approximate index's drift instead of quietly committing it. The flag only ever
+excuses a *value* that moved — a row appearing or disappearing is always a
+change, which is a distinction this project learned the hard way when the drift
+prefix once swallowed an entire regenerated artefact and reported "reproduced
+exactly".
 
-That result does not transfer. Under the offline `tfidf_svd` fallback the same
-comparison loses 0.0233 **R@1** to HNSW at both 936 and 4658 chunks, and is not
+That result does not transfer to any embedding. Under the offline `tfidf_svd`
+fallback the same comparison loses 0.0233 **R@1** to HNSW, and is not
 reproducible at all: repeated runs of the same command returned dense R@1 of
 0.3643, 0.3411, 0.3876 and 0.3876 — the last two with BLAS threading pinned to
 one core, which ruled out float reduction order and pointed at the index itself.
-Exhaustive search returned 0.4109 twice and matched on all 86 compared values. "HNSW is fine" is a statement about how well-separated
-these embeddings are, not about HNSW.
+Exhaustive search returned 0.4109 twice and matched on all 86 compared values.
+"HNSW is fine" is a statement about how well-separated these embeddings are, not
+about HNSW.
 
 #### What it costs to run
 
-| | 44 chunks | 4658 chunks |
+| | 77 chunks | 8548 chunks |
 |---|---:|---:|
-| Index build | ~8 s | ~2.5 min |
-| Dense query (exhaustive) | ~12 ms | ~24 ms |
-| BM25 query | under 1 ms | ~12 ms |
-| Hybrid + rerank query | ~1.4 s | ~1.4 s |
+| Index build | ~9 s | ~3.7 min |
+| Dense query (exhaustive) | ~15 ms | ~21 ms |
+| BM25 query | under 1 ms | ~16 ms |
+| Hybrid + rerank query | ~0.7 s | ~0.7 s |
 
 Rounded on purpose: these are wall-clock on a GitHub runner, and the same job on
 a different runner moves them by tens of percent. The shape is the claim; the
@@ -339,8 +401,10 @@ exact figures for the committed run are in
 [`scale_report.md`](data/evaluation/scale_report.md).
 
 Reranking is flat because it always rescores a fixed top-k: the cross-encoder
-never sees the corpus. At 44 chunks it is 99% of query latency, and at 4658 it is
-still over 96%. Nothing about growing the corpus changes the thing that dominates.
+never sees the corpus. At 77 chunks it is 98% of query latency, and at 8548 it is
+still 94%. Growing the corpus by 111× does not change the thing that dominates —
+what it changes is the index build, which is where the corpus is actually paid
+for.
 
 #### Guards
 
@@ -353,11 +417,12 @@ rather than reporting a number:
   chunk contains a labelled span.
 * **Gold chunks moving.** If re-ingestion shifted the resolved gold set, a fall
   in Recall@1 would be a labelling artefact rather than a scale effect. The run
-  asserts the set is identical at every size.
+  asserts the set is identical at every size — per chunk size, because answer
+  spans legitimately resolve to different chunks when the chunking changes.
 * **An embedder that changes with the corpus.** `tfidf_svd` derives its width
-  from the corpus rank (43 → 234 → 384 dims here), which would vary the encoder
-  along with the haystack. CI asserts the embedder held at 384 dimensions at
-  every size before it will publish anything.
+  from the corpus rank (76 → 384 dims across these sizes), which would vary the
+  encoder along with the haystack. CI asserts the embedder held at 384
+  dimensions at every size before it will publish anything.
 
 The distractors remain synthetic. They are hard negatives by construction, but a
 real corpus this size would hold both easier negatives — off-topic material —
@@ -370,15 +435,15 @@ Produced by the **extractive** backend — sentence selection, not generation. T
 
 | Metric | Value |
 |---|---|
-| groundedness (answer bigrams present in context) | 0.6437 |
-| answer_f1 (SQuAD-style token F1) | 0.3138 |
+| groundedness (answer bigrams present in context) | 0.6434 |
+| answer_f1 (SQuAD-style token F1) | 0.3137 |
 | span_coverage (labelled span appears in the answer) | 0.5078 |
 | citation_precision | 0.6512 |
 | uncited_sentence_rate | 0.3488 |
 | mean citations per answer | 0.8372 |
 | **over_refusal_rate** (answerable questions refused) | **0.3488** |
 | **correct_refusal_rate** (unanswerable questions refused) | **0.8571** |
-| mean latency | 1408.75 ms |
+| mean latency | 698.30 ms |
 
 The gate correctly refuses **6 of 7** unanswerable questions and also refuses **15 of 43** answerable ones. Both rates are unchanged from the fallback run, which is itself informative: the gate's behaviour here is dominated by the extractive backend's exact-token matching rather than by retrieval quality, so improving the encoder did not move it. Measuring this properly needs a real LLM — point `LLM_BASE_URL` at a local Ollama server and re-run `scripts/evaluate.py --generation --judge`.
 
@@ -412,7 +477,7 @@ curl -X POST http://localhost:8000/query \
 }
 ```
 
-Captured from the container in CI, where the hub is reachable and `auto` therefore selects the neural backends. Note `rerank` at 1664.59 ms of a 1689.21 ms request: the cross-encoder *is* the latency budget.
+Captured from the container in CI, where the hub is reachable and `auto` therefore selects the neural backends — at the **500-token default this project used to ship**, so the absolute scores, `context_tokens` and latencies are roughly what a 256-token run halves. The shape is what the block is here to show, and it survives the change: `rerank` at 1664.59 ms of a 1689.21 ms request means the cross-encoder *is* the latency budget.
 
 A question the corpus cannot answer is refused rather than guessed:
 
@@ -443,7 +508,7 @@ Interactive docs at `/docs`.
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-python scripts/ingest.py                    # 22 documents -> 44 chunks, both indexes
+python scripts/ingest.py                    # 22 documents -> 77 chunks, both indexes
 uvicorn app.main:app --reload               # API on :8000
 API_URL=http://localhost:8000 streamlit run frontend/streamlit_app.py   # UI on :8501
 ```
@@ -458,6 +523,35 @@ python scripts/benchmark.py                 # + chunk ablation -> results.json, 
 
 `scripts/benchmark.py` builds the ablation indexes in a temporary directory, so
 the index the API is serving is never replaced by an ablation build.
+
+### A single process, for a hosted demo
+
+```bash
+streamlit run frontend/streamlit_app.py     # note: no API_URL
+```
+
+Streamlit Community Cloud and Hugging Face Spaces run one process, so there is
+nowhere to put a separate `uvicorn` for the UI to call. With `API_URL` unset,
+`frontend/embedded_api.py` starts the real ASGI app on an OS-assigned loopback
+socket in a daemon thread and waits for `/health` before the UI renders; if the
+host has no index — `data/processed` is not committed, only `data/raw` is — the
+first visitor's page load builds one, and every visitor after that finds it
+ready.
+
+The alternative was to let the UI import `RagService` and call it directly. That
+was rejected: the UI would then hold a second, parallel path into retrieval, and
+what a visitor sees would no longer be what the API serves. The port is chosen
+by binding `127.0.0.1:0` and handing the already-listening socket to uvicorn,
+rather than picking a free port and hoping it is still free a moment later.
+
+Uploading is disabled in this mode by default, because a hosted demo is one
+shared container and one visitor's document would change what the next visitor
+sees. `UI_ALLOW_UPLOAD=1` re-enables it.
+
+Five integration tests cover this path, including a fresh deployment building
+its own index and answering a question over the socket, and an assertion that
+every endpoint the UI calls exists on the app that gets embedded — so the demo
+cannot drift from the deployment the rest of this README describes.
 
 ### Docker
 
@@ -569,6 +663,10 @@ CI (`.github/workflows/ci.yml`) runs two jobs on every pull request:
 
 ## Limitations
 
+The full list, including the interface contracts this code is not allowed to
+break and the status of every phase, lives in [`HANDOFF.md`](HANDOFF.md) —
+one copy, in this directory, because the paths in it are relative to here.
+
 Stated plainly, because each one bounds how far the numbers above generalise.
 
 1. **Retrieval is measured on real models; generation is not.** The tables above
@@ -580,19 +678,19 @@ Stated plainly, because each one bounds how far the numbers above generalise.
    size and context budget in this project is therefore approximate. A real
    tokenizer would shift chunk boundaries and change the ablation.
 3. **The corpus is synthetic, and the labelled part of it is small** — 22
-   documents, 44 chunks at the 500-token default. Recall@5 saturates, so R@1 and
+   documents, 77 chunks at the 256-token default. Recall@5 saturates, so R@1 and
    MRR are the only discriminative metrics, and differences of a few points
    across 43 scored questions are within noise: one question is 0.0233. The
    per-type rows rest on 6–14 questions each, which is few enough that a single
    question moves a row by 7–17 points. The corpus-scale experiment grows the
-   index to 4658 chunks and shows the ranking holds, but it grows it with
+   index to 8548 chunks and shows the ranking holds, but it grows it with
    generated documents; the labelled questions are still 50, and no part of this
    has been validated against a real enterprise corpus.
-4. **Reranking dominates latency** — 1416.77 ms per query against 0.72 ms for
-   BM25 alone. Any deployment has to decide whether that precision is worth three
-   orders of magnitude of latency, or whether to rerank only when the fusion
-   margin is narrow. CI-runner timings vary about twofold between runs, so only
-   the order of magnitude should be relied on.
+4. **Reranking dominates latency** — 699.95 ms per query against 0.78 ms for
+   BM25 alone. Any deployment has to decide whether that precision is worth
+   nearly three orders of magnitude of latency, or whether to rerank only when
+   the fusion margin is narrow. CI-runner timings vary about twofold between
+   runs, so only the order of magnitude should be relied on.
 5. **The no-answer threshold is tuned on one corpus** and is currently
    over-conservative: 34.9% of answerable questions are refused, including
    **every** paraphrased question. It has not been validated anywhere else and
@@ -611,12 +709,18 @@ Stated plainly, because each one bounds how far the numbers above generalise.
    fully grounded answer can score below 1.0 simply by paraphrasing.
 8. **Indexing is a full rebuild**, not an incremental upsert. Correct and fast at
    this size; wrong for a large corpus.
-9. **The image is large: 7.29 GB.** `requirements.txt` pulls `torch` with its
-   CUDA wheels even though nothing here uses a GPU. A CPU-only torch index
-   would cut the bulk of that, at the cost of the image no longer matching the
-   documented install. Not changed here because it trades one honest property
-   for another, but it is the first thing to look at before shipping this
-   anywhere real.
+9. **The image is large, and torch is why.** It was 7.29 GB: `torch` arrives as
+   a dependency of `sentence-transformers`, and on Linux the PyPI wheel is the
+   CUDA build, in a container with no GPU. The Dockerfile now installs the
+   `+cpu` build from PyTorch's own index — which needs no version pin, because
+   `X.Y.Z+cpu` sorts above the plain `X.Y.Z` under PEP 440 — and the documented
+   install is unchanged, since `requirements.txt` itself still names only
+   `sentence-transformers`. The earlier worry that this trades one honest
+   property for another is handled by asserting both halves in CI rather than
+   trusting them: the installed torch must report a `+cpu` version, and the api
+   image must stay under a 4 GiB ceiling. The ceiling is deliberately loose. It
+   is a regression guard against the CUDA wheels quietly coming back, not a size
+   budget; the exact size is printed by every Docker job.
 
 ## Future work
 

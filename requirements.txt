@@ -1,0 +1,17 @@
+# Dependency file for a hosted demo.
+#
+# Streamlit Community Cloud and Hugging Face Spaces install from the repository
+# root, not from `enterprise-hybrid-rag/`, so this file exists to point them at
+# the real one rather than to duplicate it. Nothing else uses it: the Docker
+# image, CI and a local checkout all install
+# `enterprise-hybrid-rag/requirements.txt` directly.
+#
+# The extra index selects the CPU build of torch. It arrives as a dependency of
+# sentence-transformers, and on Linux the PyPI wheel is the CUDA one — around
+# 3 GB of wheels for a host with no GPU, which on a small free tier is the
+# difference between a demo that boots and one that does not. PyTorch's index
+# serves `X.Y.Z+cpu`, which sorts above the plain `X.Y.Z` under PEP 440, so no
+# version pin is needed to prefer it.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+-r enterprise-hybrid-rag/requirements.txt

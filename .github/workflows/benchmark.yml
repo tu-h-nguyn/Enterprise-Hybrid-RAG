@@ -151,6 +151,10 @@ jobs:
             echo "nothing staged"
           else
             git commit -m "Regenerate benchmark results on the neural backends [skip ci]"
+            # The branch can move while a run this long is in flight — a later
+            # push, or the scale job in the same workflow. Rebase onto whatever
+            # is there rather than losing the run to a non-fast-forward.
+            git pull --rebase origin "${{ github.head_ref || github.ref_name }}"
             git push
           fi
 
@@ -202,8 +206,14 @@ jobs:
           cp data/evaluation/scale_results.json /tmp/baseline/scale_results.json 2>/dev/null \
             || echo "no committed scale results yet"
 
+      # The extra sweep is what settled the shipped chunk size, and it keeps
+      # running so the decision stays checkable rather than becoming folklore:
+      # 256 is now the default, so 500 is the alternative being measured
+      # against it. The extra size runs against exhaustive search only, because
+      # whether HNSW costs recall is a separate question this job already
+      # answers at the configured chunk size.
       - name: Run the scale experiment
-        run: python scripts/scale_experiment.py --quiet
+        run: python scripts/scale_experiment.py --quiet --extra-chunk-sizes 500
 
       # The embedder must be the neural one *and* must hold its width at 384
       # across every corpus size. The tfidf_svd fallback derives its dimension
