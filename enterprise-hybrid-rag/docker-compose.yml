@@ -1,0 +1,57 @@
+# Two services from one image, sharing the data volume so the UI's uploads and
+# the API's index are the same files.
+#
+#   docker compose up --build
+#   docker compose run --rm api python scripts/ingest.py
+#
+# Secrets are never baked into the image. Provide them through the environment
+# or a local .env file, which is gitignored.
+
+services:
+  api:
+    build:
+      context: .
+      target: api
+    image: enterprise-hybrid-rag:api
+    container_name: rag-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - model-cache:/models
+    environment:
+      # Backend selection. `auto` prefers the neural models and degrades to the
+      # offline backends if the weights are unavailable — /health reports which
+      # one was actually selected.
+      EMBEDDING_BACKEND: ${EMBEDDING_BACKEND:-auto}
+      RERANKER_BACKEND: ${RERANKER_BACKEND:-auto}
+      LLM_PROVIDER: ${LLM_PROVIDER:-auto}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      # Supplied from the host environment or .env; never hard-coded here.
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_JSON: ${LOG_JSON:-true}
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: .
+      target: ui
+    image: enterprise-hybrid-rag:ui
+    container_name: rag-ui
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+    environment:
+      # Service name, not localhost: the UI talks to the API over the compose network.
+      API_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  model-cache:

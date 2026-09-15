@@ -20,20 +20,35 @@ State of the repository, and exactly what is left to do. Written for whoever
 | 9 | LLM layer: OpenAI-compatible, Anthropic, offline extractive | **done** |
 | 10 | No-answer gate (`app/services/confidence.py`, per-stage thresholds) | **done, wired** |
 | 11 | Eval dataset **schema + resolver** | done |
-| 11 | Eval dataset **content (30–50 questions)** | **MISSING** |
-| 12 | Retrieval metrics (R@1/3/5/10, MRR, nDCG, precision) + evaluator | done |
+| 11 | Eval dataset **content (50 questions)** | **done** |
+| 12 | Retrieval metrics (R@1/3/5/10, MRR, nDCG, precision) + evaluator | done, **bug fixed** |
 | 13 | Generation metrics (groundedness, citation support, token-F1, LLM judge) | done |
-| 14 | `app/evaluation/experiments.py` + ablation runner | **MISSING** |
-| 15 | FastAPI app (`/health`, `/documents*`, `/query`) | done, **not yet smoke-tested** |
-| 16 | Streamlit UI | **MISSING** |
-| 17 | Tests (`tests/unit`, `tests/integration`) | **MISSING** |
-| 18 | Observability (JSON logs, `Stopwatch`, `QueryTrace`) | done |
-| 19 | Dockerfile / docker-compose | **MISSING** |
-| 20 | README | **MISSING** |
-| 22 | Final verification run | **NOT DONE** |
+| 14 | `app/evaluation/experiments.py` + ablation runner | **done, runs** |
+| 15 | FastAPI app (`/health`, `/documents*`, `/query`) | done, **smoke-tested** |
+| 16 | Streamlit UI | **done, driven in a browser** |
+| 17 | Tests (`tests/unit`, `tests/integration`) | **done — 101 pass** |
+| 19 | Dockerfile / docker-compose | **written, BUILD UNVERIFIED** |
+| 20 | README | **done, numbers measured** |
+| 22 | Final verification run | **done** |
 
-**No benchmark numbers have been produced yet. None are written anywhere.**
-Do not invent any. Every number in the README must come from an actual run.
+Benchmark numbers now exist in `data/evaluation/results.json` and `report.md`,
+and are quoted in the README. They were produced by real runs on the offline
+fallback backends (see §3) and every artefact records which backends produced
+it. **They are not MiniLM numbers.** Re-run `scripts/benchmark.py` on a machine
+with hub access before quoting them as neural-model results.
+
+### What a later session still needs to do
+
+1. **Verify the Docker build.** `docker compose config` validates and the
+   Dockerfile parses, but the container registry was unreachable in the
+   development sandbox (blob CDN returned 403), so no image was ever built or
+   run. Treat `Dockerfile`/`docker-compose.yml` as unverified.
+2. **Re-run the whole benchmark with the neural backends.** The paraphrased
+   question row (R@1 0.0000–0.1111) is the one expected to move most.
+3. **Re-tune `min_lexical_rerank_score` / `min_rerank_score` afterwards.** The
+   current gate over-refuses 15 of 43 answerable questions, but most of that is
+   a downstream symptom of lexical retrieval rather than a bad constant, so
+   tuning before the encoder swap would fit the wrong problem.
 
 ---
 
