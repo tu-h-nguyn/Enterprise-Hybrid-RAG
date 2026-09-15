@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-"""Compare two benchmark result files on quality metrics only.
+"""Compare two result files on quality metrics only.
 
     python scripts/compare_results.py --baseline old.json --candidate new.json
+
+Handles both shapes written under ``data/evaluation``: ``results.json`` from
+``scripts/benchmark.py`` and ``scale_results.json`` from
+``scripts/scale_experiment.py``. Sections absent from a payload are simply
+empty, so the same invocation works for either.
 
 Latency is wall-clock and differs on every run; quality metrics are
 deterministic given the same corpus, dataset and backends. Comparing only the
@@ -25,13 +30,13 @@ from typing import Any
 #: Keys whose values are wall-clock measurements rather than quality.
 LATENCY_KEYS = frozenset({
     "latency_ms_mean", "latency_ms_p95", "mean_latency_ms", "latency_ms",
-    "generated_at", "environment",
+    "generated_at", "environment", "index_build_seconds",
 })
 
 
 def quality_view(payload: dict[str, Any]) -> dict[str, Any]:
     """Project a results payload down to its deterministic parts."""
-    view: dict[str, Any] = {"retrieval": {}, "ablation": {}, "generation": {}}
+    view: dict[str, Any] = {"retrieval": {}, "ablation": {}, "generation": {}, "scale": {}}
 
     for row in payload.get("retrieval", []):
         view["retrieval"][row["label"]] = {
@@ -44,6 +49,23 @@ def quality_view(payload: dict[str, Any]) -> dict[str, Any]:
         view["ablation"][key] = {
             "n_chunks": row["n_chunks"],
             "configs": {c["label"]: c["metrics"] for c in row.get("configs", [])},
+        }
+
+    # scale_results.json (scripts/scale_experiment.py) carries its own shape.
+    # Distractor interference is deterministic too, so it belongs in the view:
+    # if the same corpus stopped competing with the gold chunks, that is a real
+    # change and not a timing artefact.
+    for row in payload.get("sizes", []):
+        # Keyed by store as well as size: the same corpus is run through both
+        # the exact and the approximate index, and they must not collide.
+        key = f"{row.get('vector_backend', 'chroma')}/{row['n_chunks']}"
+        view["scale"][key] = {
+            "n_distractor_documents": row["n_distractor_documents"],
+            "n_gold_chunks": row["n_gold_chunks"],
+            "embedding_dim": row.get("embedding_dim"),
+            "configs": {c["label"]: {"metrics": c["metrics"],
+                                     "interference": c.get("distractor_interference", {})}
+                        for c in row.get("configs", [])},
         }
 
     generation = (payload.get("generation") or {}).get("metrics", {})

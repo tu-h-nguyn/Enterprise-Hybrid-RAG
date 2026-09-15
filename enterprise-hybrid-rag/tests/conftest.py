@@ -14,8 +14,9 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+for _path in (ROOT, ROOT / "scripts"):  # scripts/ holds the benchmark CLIs
+    if str(_path) not in sys.path:
+        sys.path.insert(0, str(_path))
 
 from app.config.settings import Settings  # noqa: E402
 from app.indexing.index_builder import IndexBuilder, IndexBundle  # noqa: E402

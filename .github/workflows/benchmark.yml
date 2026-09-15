@@ -6,6 +6,10 @@ name: Benchmark (neural backends)
 # come from. It regenerates results.json and report.md and commits them back.
 #
 # No Hugging Face token is required: both models are public.
+#
+# Two jobs run here: the headline benchmark, and the corpus-scale experiment
+# that grows the haystack from 44 to roughly 5000 chunks. They are serialised
+# because both may commit regenerated artefacts to the same branch.
 
 on:
   # Manual is the intended way to run this: it is slow and costs a cross-encoder
@@ -154,3 +158,108 @@ jobs:
         if: steps.compare.outputs.changed == 'false'
         run: echo "Quality metrics reproduced the committed numbers exactly; nothing to commit."
 
+  scale:
+    name: Corpus-scale experiment on neural backends
+    runs-on: ubuntu-latest
+    # Serialised behind the benchmark job: both commit to the same branch, and
+    # two concurrent pushes would race.
+    needs: benchmark
+    timeout-minutes: 120
+
+    env:
+      EMBEDDING_BACKEND: sentence_transformers
+      RERANKER_BACKEND: cross_encoder
+      LLM_PROVIDER: extractive
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: enterprise-hybrid-rag/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # The experiment builds every index in a temporary directory, so there is
+      # nothing to ingest first. This downloads both models once, up front,
+      # instead of during the first timed run. It deliberately exits 0 even when
+      # the hub is unreachable; the assertion after the run is what actually
+      # refuses to publish fallback numbers under a neural heading.
+      - name: Warm the models
+        run: python scripts/warm_models.py
+
+      - name: Snapshot the committed scale results
+        run: |
+          mkdir -p /tmp/baseline
+          cp data/evaluation/scale_results.json /tmp/baseline/scale_results.json 2>/dev/null \
+            || echo "no committed scale results yet"
+
+      - name: Run the scale experiment
+        run: python scripts/scale_experiment.py --quiet
+
+      # The embedder must be the neural one *and* must hold its width at 384
+      # across every corpus size. The tfidf_svd fallback derives its dimension
+      # from the corpus, which would vary the encoder along with the haystack
+      # and make the curve unreadable.
+      - name: Confirm the neural embedder held at 384 dimensions everywhere
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d = json.loads(Path("data/evaluation/scale_results.json").read_text())
+          print(json.dumps(d["backends"], indent=2))
+          assert d["backends"]["embedder"]["backend"] == "sentence_transformers", d["backends"]
+          assert d["backends"]["is_neural_reranker"], d["backends"]
+          dims = sorted({row["embedding_dim"] for row in d["sizes"]})
+          print("embedding dims across sizes:", dims)
+          assert dims == [384], dims
+          print("neural backends confirmed at every corpus size")
+          PY
+
+      - name: Compare against the committed scale numbers
+        id: compare
+        run: |
+          if python scripts/compare_results.py \
+               --baseline /tmp/baseline/scale_results.json \
+               --candidate data/evaluation/scale_results.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Print the report
+        run: cat data/evaluation/scale_report.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scale-neural
+          path: |
+            enterprise-hybrid-rag/data/evaluation/scale_results.json
+            enterprise-hybrid-rag/data/evaluation/scale_report.md
+
+      - name: Commit the regenerated scale results
+        if: steps.compare.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/evaluation/scale_results.json data/evaluation/scale_report.md
+          if git diff --cached --quiet; then
+            echo "nothing staged"
+          else
+            git commit -m "Regenerate the corpus-scale experiment on the neural backends [skip ci]"
+            # The benchmark job may have pushed to this branch moments ago.
+            git pull --rebase origin "${{ github.head_ref || github.ref_name }}"
+            git push
+          fi
+
+      - name: Report reproducibility
+        if: steps.compare.outputs.changed == 'false'
+        run: echo "Scale metrics reproduced the committed numbers exactly; nothing to commit."
