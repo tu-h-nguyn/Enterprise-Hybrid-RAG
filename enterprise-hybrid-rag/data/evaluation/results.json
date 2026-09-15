@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-15T05:28:36+00:00",
+  "generated_at": "2026-09-15T05:44:59+00:00",
   "environment": {
     "python": "3.11.16",
     "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39"
@@ -86,8 +86,8 @@
         "ndcg@10": 0.7269,
         "mrr": 0.6906
       },
-      "latency_ms_mean": 9.15,
-      "latency_ms_p95": 10.09,
+      "latency_ms_mean": 16.93,
+      "latency_ms_p95": 21.28,
       "by_question_type": {
         "factual": {
           "n_scored": 14,
@@ -270,7 +270,7 @@
             "compensation_and_benefits_001_000"
           ],
           "first_hit_rank": 2,
-          "top_score": 0.367488
+          "top_score": 0.367489
         },
         {
           "id": "q005",
@@ -289,7 +289,7 @@
             "travel_expense_policy_000_001"
           ],
           "first_hit_rank": 1,
-          "top_score": 0.523032
+          "top_score": 0.523031
         },
         {
           "id": "q006",
@@ -555,7 +555,7 @@
             "hr_recruitment_process_000_001"
           ],
           "first_hit_rank": null,
-          "top_score": 0.379809
+          "top_score": 0.37981
         },
         {
           "id": "q020",
@@ -631,7 +631,7 @@
             "data_processing_agreement_000_001"
           ],
           "first_hit_rank": 4,
-          "top_score": 0.516979
+          "top_score": 0.51698
         },
         {
           "id": "q024",
@@ -821,7 +821,7 @@
             "contractor_engagement_policy_000_001"
           ],
           "first_hit_rank": null,
-          "top_score": 0.508184
+          "top_score": 0.508185
         },
         {
           "id": "q034",
@@ -1030,7 +1030,7 @@
             "employee_handbook_001_000"
           ],
           "first_hit_rank": null,
-          "top_score": 0.448052
+          "top_score": 0.448051
         },
         {
           "id": "q045",
@@ -1173,8 +1173,8 @@
         "ndcg@10": 0.8068,
         "mrr": 0.7694
       },
-      "latency_ms_mean": 0.5,
-      "latency_ms_p95": 0.57,
+      "latency_ms_mean": 0.72,
+      "latency_ms_p95": 0.83,
       "by_question_type": {
         "factual": {
           "n_scored": 14,
@@ -2250,8 +2250,8 @@
         "ndcg@10": 0.7669,
         "mrr": 0.7362
       },
-      "latency_ms_mean": 9.41,
-      "latency_ms_p95": 11.03,
+      "latency_ms_mean": 17.14,
+      "latency_ms_p95": 20.69,
       "by_question_type": {
         "factual": {
           "n_scored": 14,
@@ -3337,8 +3337,8 @@
         "ndcg@10": 0.8821,
         "mrr": 0.8568
       },
-      "latency_ms_mean": 783.67,
-      "latency_ms_p95": 850.19,
+      "latency_ms_mean": 1416.77,
+      "latency_ms_p95": 1460.45,
       "by_question_type": {
         "factual": {
           "n_scored": 14,
@@ -3464,7 +3464,7 @@
             "finance_procurement_policy_001_001"
           ],
           "first_hit_rank": 2,
-          "top_score": 4.365924
+          "top_score": 4.365923
         },
         {
           "id": "q002",
@@ -3483,7 +3483,7 @@
             "information_security_policy_000_002"
           ],
           "first_hit_rank": 1,
-          "top_score": 2.271817
+          "top_score": 2.271816
         },
         {
           "id": "q003",
@@ -3502,7 +3502,7 @@
             "data_engineering_standards_000_000"
           ],
           "first_hit_rank": 1,
-          "top_score": 5.99988
+          "top_score": 5.999881
         },
         {
           "id": "q004",
@@ -3521,7 +3521,7 @@
             "remote_work_policy_000_000"
           ],
           "first_hit_rank": 1,
-          "top_score": -5.344319
+          "top_score": -5.344318
         },
         {
           "id": "q005",
@@ -3540,7 +3540,7 @@
             "employee_handbook_001_001"
           ],
           "first_hit_rank": 1,
-          "top_score": 6.633802
+          "top_score": 6.6338
         },
         {
           "id": "q006",
@@ -3559,7 +3559,7 @@
             "employee_handbook_003_003"
           ],
           "first_hit_rank": 1,
-          "top_score": 5.388253
+          "top_score": 5.388252
         },
         {
           "id": "q007",
@@ -3578,7 +3578,7 @@
             "customer_support_sla_000_001"
           ],
           "first_hit_rank": 1,
-          "top_score": 2.778998
+          "top_score": 2.778996
         },
         {
           "id": "q008",
@@ -3654,7 +3654,7 @@
             "ml_platform_standards_000_000"
           ],
           "first_hit_rank": 1,
-          "top_score": 6.458981
+          "top_score": 6.458979
         },
         {
           "id": "q012",
@@ -3673,7 +3673,7 @@
             "vendor_risk_assessment_000_000"
           ],
           "first_hit_rank": 1,
-          "top_score": 6.833904
+          "top_score": 6.833903
         },
         {
           "id": "q013",
@@ -3692,7 +3692,7 @@
             "customer_support_sla_000_001"
           ],
           "first_hit_rank": 1,
-          "top_score": 4.740867
+          "top_score": 4.740865
         },
         {
           "id": "q014",
@@ -3730,7 +3730,7 @@
             "office_facilities_guide_000_001"
           ],
           "first_hit_rank": 1,
-          "top_score": -1.831561
+          "top_score": -1.831563
         },
         {
           "id": "q016",
@@ -3768,7 +3768,7 @@
             "information_security_policy_000_001"
           ],
           "first_hit_rank": 5,
-          "top_score": -5.978022
+          "top_score": -5.978026
         },
         {
           "id": "q018",
@@ -3787,7 +3787,7 @@
             "customer_support_sla_000_000"
           ],
           "first_hit_rank": 7,
-          "top_score": -6.900403
+          "top_score": -6.900408
         },
         {
           "id": "q019",
@@ -3806,7 +3806,7 @@
             "information_security_policy_000_000"
           ],
           "first_hit_rank": 2,
-          "top_score": -4.018711
+          "top_score": -4.018712
         },
         {
           "id": "q020",
@@ -3825,7 +3825,7 @@
             "model_governance_policy_000_000"
           ],
           "first_hit_rank": 1,
-          "top_score": -7.815353
+          "top_score": -7.815354
         },
         {
           "id": "q021",
@@ -3844,7 +3844,7 @@
             "employee_handbook_002_002"
           ],
           "first_hit_rank": null,
-          "top_score": -1.402535
+          "top_score": -1.40254
         },
         {
           "id": "q022",
@@ -3863,7 +3863,7 @@
             "it_service_desk_guide_000_000"
           ],
           "first_hit_rank": 3,
-          "top_score": -3.542157
+          "top_score": -3.542158
         },
         {
           "id": "q023",
@@ -3882,7 +3882,7 @@
             "it_service_desk_guide_000_000"
           ],
           "first_hit_rank": 6,
-          "top_score": -7.218345
+          "top_score": -7.218348
         },
         {
           "id": "q024",
@@ -3901,7 +3901,7 @@
             "hr_recruitment_process_000_000"
           ],
           "first_hit_rank": 1,
-          "top_score": 2.015804
+          "top_score": 2.015798
         },
         {
           "id": "q025",
@@ -3920,7 +3920,7 @@
             "customer_support_sla_000_000"
           ],
           "first_hit_rank": 1,
-          "top_score": 1.708992
+          "top_score": 1.708991
         },
         {
           "id": "q026",
@@ -3958,7 +3958,7 @@
             "compensation_and_benefits_001_000"
           ],
           "first_hit_rank": 1,
-          "top_score": 4.811289
+          "top_score": 4.811287
         },
         {
           "id": "q028",
@@ -3977,7 +3977,7 @@
             "code_of_conduct_000_000"
           ],
           "first_hit_rank": 1,
-          "top_score": 5.440083
+          "top_score": 5.440082
         },
         {
           "id": "q029",
@@ -4015,7 +4015,7 @@
             "finance_procurement_policy_001_000"
           ],
           "first_hit_rank": 1,
-          "top_score": 4.124976
+          "top_score": 4.124977
         },
         {
           "id": "q031",
@@ -4034,7 +4034,7 @@
             "incident_response_runbook_000_000"
           ],
           "first_hit_rank": 1,
-          "top_score": 8.068345
+          "top_score": 8.068346
         },
         {
           "id": "q032",
@@ -4053,7 +4053,7 @@
             "data_processing_agreement_000_000"
           ],
           "first_hit_rank": 1,
-          "top_score": 4.901421
+          "top_score": 4.901422
         },
         {
           "id": "q033",
@@ -4072,7 +4072,7 @@
             "business_continuity_plan_000_000"
           ],
           "first_hit_rank": 2,
-          "top_score": 0.878825
+          "top_score": 0.878827
         },
         {
           "id": "q034",
@@ -4091,7 +4091,7 @@
             "vendor_risk_assessment_000_000"
           ],
           "first_hit_rank": 1,
-          "top_score": -3.617599
+          "top_score": -3.617597
         },
         {
           "id": "q035",
@@ -4129,7 +4129,7 @@
             "travel_expense_policy_000_000"
           ],
           "first_hit_rank": 1,
-          "top_score": 4.670696
+          "top_score": 4.670697
         },
         {
           "id": "q037",
@@ -4148,7 +4148,7 @@
             "compensation_and_benefits_001_001"
           ],
           "first_hit_rank": 1,
-          "top_score": -0.836758
+          "top_score": -0.836761
         },
         {
           "id": "q038",
@@ -4167,7 +4167,7 @@
             "information_security_policy_000_001"
           ],
           "first_hit_rank": 1,
-          "top_score": 3.206006
+          "top_score": 3.206003
         },
         {
           "id": "q039",
@@ -4186,7 +4186,7 @@
             "data_processing_agreement_000_000"
           ],
           "first_hit_rank": 1,
-          "top_score": 4.895138
+          "top_score": 4.895141
         },
         {
           "id": "q040",
@@ -4205,7 +4205,7 @@
             "ml_platform_standards_000_000"
           ],
           "first_hit_rank": 1,
-          "top_score": 3.103418
+          "top_score": 3.103417
         },
         {
           "id": "q041",
@@ -4243,7 +4243,7 @@
             "employee_handbook_001_000"
           ],
           "first_hit_rank": 1,
-          "top_score": 6.630525
+          "top_score": 6.630527
         },
         {
           "id": "q043",
@@ -4300,7 +4300,7 @@
             "vendor_risk_assessment_000_000"
           ],
           "first_hit_rank": null,
-          "top_score": -6.529609
+          "top_score": -6.529608
         },
         {
           "id": "q046",
@@ -4319,7 +4319,7 @@
             "incident_response_runbook_000_000"
           ],
           "first_hit_rank": null,
-          "top_score": 1.241464
+          "top_score": 1.241466
         },
         {
           "id": "q047",
@@ -4338,7 +4338,7 @@
             "information_security_policy_000_001"
           ],
           "first_hit_rank": null,
-          "top_score": -7.184338
+          "top_score": -7.18434
         },
         {
           "id": "q048",
@@ -4357,7 +4357,7 @@
             "employee_handbook_001_000"
           ],
           "first_hit_rank": null,
-          "top_score": 2.536056
+          "top_score": 2.536055
         },
         {
           "id": "q049",
@@ -4395,7 +4395,7 @@
             "office_facilities_guide_000_000"
           ],
           "first_hit_rank": null,
-          "top_score": -8.016315
+          "top_score": -8.016317
         }
       ]
     }
@@ -4434,8 +4434,8 @@
             "ndcg@10": 0.8003,
             "mrr": 0.774
           },
-          "latency_ms_mean": 8.89,
-          "latency_ms_p95": 10.23
+          "latency_ms_mean": 17.83,
+          "latency_ms_p95": 21.16
         },
         {
           "label": "BM25 only",
@@ -4462,8 +4462,8 @@
             "ndcg@10": 0.766,
             "mrr": 0.7597
           },
-          "latency_ms_mean": 0.53,
-          "latency_ms_p95": 0.63
+          "latency_ms_mean": 0.79,
+          "latency_ms_p95": 0.89
         },
         {
           "label": "Hybrid (RRF)",
@@ -4490,8 +4490,8 @@
             "ndcg@10": 0.8347,
             "mrr": 0.791
           },
-          "latency_ms_mean": 9.15,
-          "latency_ms_p95": 10.46
+          "latency_ms_mean": 17.57,
+          "latency_ms_p95": 20.62
         },
         {
           "label": "Hybrid + Reranker",
@@ -4518,8 +4518,8 @@
             "ndcg@10": 0.9245,
             "mrr": 0.9085
           },
-          "latency_ms_mean": 376.8,
-          "latency_ms_p95": 438.71
+          "latency_ms_mean": 712.66,
+          "latency_ms_p95": 779.56
         }
       ]
     },
@@ -4556,8 +4556,8 @@
             "ndcg@10": 0.7269,
             "mrr": 0.6906
           },
-          "latency_ms_mean": 9.59,
-          "latency_ms_p95": 12.19
+          "latency_ms_mean": 16.76,
+          "latency_ms_p95": 19.54
         },
         {
           "label": "BM25 only",
@@ -4584,8 +4584,8 @@
             "ndcg@10": 0.8068,
             "mrr": 0.7694
           },
-          "latency_ms_mean": 0.51,
-          "latency_ms_p95": 0.58
+          "latency_ms_mean": 0.74,
+          "latency_ms_p95": 0.83
         },
         {
           "label": "Hybrid (RRF)",
@@ -4612,8 +4612,8 @@
             "ndcg@10": 0.7669,
             "mrr": 0.7362
           },
-          "latency_ms_mean": 8.86,
-          "latency_ms_p95": 9.81
+          "latency_ms_mean": 16.34,
+          "latency_ms_p95": 18.71
         },
         {
           "label": "Hybrid + Reranker",
@@ -4640,8 +4640,8 @@
             "ndcg@10": 0.8821,
             "mrr": 0.8568
           },
-          "latency_ms_mean": 750.21,
-          "latency_ms_p95": 811.38
+          "latency_ms_mean": 1406.65,
+          "latency_ms_p95": 1448.41
         }
       ]
     },
@@ -4678,8 +4678,8 @@
             "ndcg@10": 0.754,
             "mrr": 0.7225
           },
-          "latency_ms_mean": 8.82,
-          "latency_ms_p95": 10.51
+          "latency_ms_mean": 16.3,
+          "latency_ms_p95": 18.56
         },
         {
           "label": "BM25 only",
@@ -4706,8 +4706,8 @@
             "ndcg@10": 0.8312,
             "mrr": 0.7966
           },
-          "latency_ms_mean": 0.44,
-          "latency_ms_p95": 0.52
+          "latency_ms_mean": 0.71,
+          "latency_ms_p95": 0.78
         },
         {
           "label": "Hybrid (RRF)",
@@ -4734,8 +4734,8 @@
             "ndcg@10": 0.8191,
             "mrr": 0.787
           },
-          "latency_ms_mean": 9.31,
-          "latency_ms_p95": 11.61
+          "latency_ms_mean": 16.4,
+          "latency_ms_p95": 19.73
         },
         {
           "label": "Hybrid + Reranker",
@@ -4762,8 +4762,8 @@
             "ndcg@10": 0.8927,
             "mrr": 0.8747
           },
-          "latency_ms_mean": 1021.13,
-          "latency_ms_p95": 1111.56
+          "latency_ms_mean": 1834.19,
+          "latency_ms_p95": 1844.49
         }
       ]
     }
@@ -4785,7 +4785,7 @@
       "mean_citations": 0.8372,
       "over_refusal_rate": 0.3488,
       "correct_refusal_rate": 0.8571,
-      "mean_latency_ms": 798.7364
+      "mean_latency_ms": 1408.7458
     },
     "per_question": [
       {
@@ -4802,7 +4802,7 @@
             "source": "employee_handbook.pdf",
             "page": 2,
             "section": "Referrals",
-            "score": 4.365924,
+            "score": 4.365923,
             "snippet": "Employees receive a referral bonus of 1500 US dollars when a referred candidate is hired and completes 6 months of continuous service. There is no limit on the number of referrals an employee may make.\n\nNew employees serve a probation perio"
           },
           {
@@ -4812,12 +4812,12 @@
             "source": "employee_handbook.pdf",
             "page": 1,
             "section": "Introduction",
-            "score": 3.435847,
+            "score": 3.435846,
             "snippet": "This handbook describes the employment policies of Northwind Analytics for all permanent employees. It applies to every office and to employees working remotely. Where local law conflicts with this handbook, local law prevails. The handbook"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 771.58,
+        "latency_ms": 1382.01,
         "groundedness": 0.9474,
         "answer_f1": 0.5185,
         "span_coverage": 1.0,
@@ -4841,7 +4841,7 @@
             "source": "it_service_desk_guide.md",
             "page": null,
             "section": "IT Service Desk Guide > Access and Account Problems",
-            "score": -4.269105,
+            "score": -4.269107,
             "snippet": "A forgotten password is resolved through self service password reset. The service desk cannot reset a password on request without identity verification by video call. A locked account unlocks automatically after 30 minutes. The service desk"
           },
           {
@@ -4856,7 +4856,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 787.75,
+        "latency_ms": 1390.25,
         "groundedness": 0.9667,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -4880,7 +4880,7 @@
             "source": "customer_support_sla.md",
             "page": null,
             "section": "Customer Support Service Level Agreement",
-            "score": 5.99988,
+            "score": 5.999881,
             "snippet": "This document defines the support commitments of Northwind Analytics for customers on the Standard and Enterprise plans. It is contractually binding and is reviewed each quarter.\n\nStandard plan support operates 08:00 to 20:00 Central Europe"
           },
           {
@@ -4895,7 +4895,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 778.97,
+        "latency_ms": 1429.88,
         "groundedness": 0.9487,
         "answer_f1": 0.0952,
         "span_coverage": 1.0,
@@ -4913,7 +4913,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 771.2,
+        "latency_ms": 1382.26,
         "groundedness": 0.0,
         "answer_f1": 0.08,
         "span_coverage": 0.0,
@@ -4937,12 +4937,12 @@
             "source": "finance_procurement_policy.pdf",
             "page": 1,
             "section": "Purpose and Scope",
-            "score": 6.633802,
+            "score": 6.6338,
             "snippet": "This Finance and Procurement Policy, reference FIN-2025-01, governs how Northwind Analytics commits to and pays for goods and services. It applies to all employees who request, approve or receive purchases. The policy is owned by the Chief"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 740.66,
+        "latency_ms": 1346.84,
         "groundedness": 1.0,
         "answer_f1": 1.0,
         "span_coverage": 1.0,
@@ -4966,12 +4966,12 @@
             "source": "incident_response_runbook.md",
             "page": null,
             "section": "Production Incident Response Runbook",
-            "score": 5.388253,
+            "score": 5.388252,
             "snippet": "This runbook governs how Northwind Analytics responds to production incidents affecting customer-facing systems. It is owned by the Site Reliability Engineering team, reference SRE-IR-9.\n\nA SEV1 incident is a total loss of service, a confir"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 769.35,
+        "latency_ms": 1423.03,
         "groundedness": 1.0,
         "answer_f1": 0.5,
         "span_coverage": 1.0,
@@ -4995,12 +4995,12 @@
             "source": "remote_work_policy.md",
             "page": null,
             "section": "Remote and Hybrid Work Policy",
-            "score": 2.778998,
+            "score": 2.778996,
             "snippet": "Northwind Analytics operates a hybrid model. This policy sets out eligibility, equipment and tax obligations. It is reference HR-RW-2 and replaces the interim guidance issued in 2023.\n\nAll permanent employees who have completed their probat"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 752.37,
+        "latency_ms": 1411.27,
         "groundedness": 1.0,
         "answer_f1": 0.2,
         "span_coverage": 1.0,
@@ -5029,7 +5029,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 746.23,
+        "latency_ms": 1382.22,
         "groundedness": 1.0,
         "answer_f1": 0.5,
         "span_coverage": 1.0,
@@ -5058,7 +5058,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 779.71,
+        "latency_ms": 1410.61,
         "groundedness": 1.0,
         "answer_f1": 0.5556,
         "span_coverage": 1.0,
@@ -5087,7 +5087,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 779.7,
+        "latency_ms": 1379.77,
         "groundedness": 0.9412,
         "answer_f1": 0.4348,
         "span_coverage": 1.0,
@@ -5111,12 +5111,12 @@
             "source": "product_release_process.md",
             "page": null,
             "section": "Product Release Process",
-            "score": 6.458981,
+            "score": 6.458979,
             "snippet": "This document describes how Northwind Analytics ships product changes. It complements the Engineering Onboarding Guide, which covers day-to-day development workflow.\n\nProduction releases run on a fixed schedule twice per week, on Tuesday an"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 863.68,
+        "latency_ms": 1401.74,
         "groundedness": 1.0,
         "answer_f1": 0.7619,
         "span_coverage": 1.0,
@@ -5140,12 +5140,12 @@
             "source": "compensation_and_benefits.pdf",
             "page": 1,
             "section": "Variable Pay",
-            "score": 6.833904,
+            "score": 6.833903,
             "snippet": "All employees participate in a company bonus scheme with a target of 10 percent of base salary. The scheme pays between 0 and 150 percent of target depending on company performance against the annual operating plan. The sales team participa"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 761.64,
+        "latency_ms": 1375.32,
         "groundedness": 0.96,
         "answer_f1": 0.5263,
         "span_coverage": 1.0,
@@ -5169,12 +5169,12 @@
             "source": "code_of_conduct.docx",
             "page": null,
             "section": "Our Standards",
-            "score": 4.740867,
+            "score": 4.740865,
             "snippet": "Northwind Analytics expects every employee, contractor and board member to act with honesty, respect and professional integrity. This code is reference GOV-COC-3 and is acknowledged by every employee on joining and annually thereafter. Brea"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 783.07,
+        "latency_ms": 1438.03,
         "groundedness": 1.0,
         "answer_f1": 0.6667,
         "span_coverage": 1.0,
@@ -5203,7 +5203,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 728.82,
+        "latency_ms": 1323.92,
         "groundedness": 1.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -5221,7 +5221,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 827.45,
+        "latency_ms": 1455.64,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -5239,7 +5239,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 776.65,
+        "latency_ms": 1380.73,
         "groundedness": 0.0,
         "answer_f1": 0.1,
         "span_coverage": 0.0,
@@ -5257,7 +5257,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 815.55,
+        "latency_ms": 1437.82,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -5275,7 +5275,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 808.02,
+        "latency_ms": 1427.33,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -5293,7 +5293,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 862.85,
+        "latency_ms": 1410.45,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -5311,7 +5311,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 778.66,
+        "latency_ms": 1374.88,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -5329,7 +5329,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 759.41,
+        "latency_ms": 1308.01,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -5347,7 +5347,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 781.65,
+        "latency_ms": 1370.63,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -5365,7 +5365,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 789.14,
+        "latency_ms": 1431.66,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -5389,12 +5389,12 @@
             "source": "employee_handbook.pdf",
             "page": 1,
             "section": "Introduction",
-            "score": 2.015804,
+            "score": 2.015798,
             "snippet": "This handbook describes the employment policies of Northwind Analytics for all permanent employees. It applies to every office and to employees working remotely. Where local law conflicts with this handbook, local law prevails. The handbook"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 781.24,
+        "latency_ms": 1434.97,
         "groundedness": 1.0,
         "answer_f1": 0.8889,
         "span_coverage": 1.0,
@@ -5418,12 +5418,12 @@
             "source": "travel_expense_policy.md",
             "page": null,
             "section": "Travel and Expense Policy",
-            "score": 1.708992,
+            "score": 1.708991,
             "snippet": "This policy applies to all Northwind Analytics employees and contractors who incur costs on company business. It is owned by the Finance team and takes effect from 1 March 2025 under document reference FIN-TE-4.\n\nAll travel must be booked t"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 842.98,
+        "latency_ms": 1431.12,
         "groundedness": 1.0,
         "answer_f1": 0.5455,
         "span_coverage": 1.0,
@@ -5452,7 +5452,7 @@
           }
         ],
         "n_contexts": 4,
-        "latency_ms": 803.28,
+        "latency_ms": 1436.01,
         "groundedness": 1.0,
         "answer_f1": 0.2222,
         "span_coverage": 1.0,
@@ -5476,12 +5476,12 @@
             "source": "vendor_risk_assessment.md",
             "page": null,
             "section": "Vendor Risk Assessment Procedure",
-            "score": 4.811289,
+            "score": 4.811287,
             "snippet": "This procedure describes how Northwind Analytics assesses and monitors third-party vendors. It is owned jointly by Procurement and Security, reference SEC-VR-6.\n\nA Tier 1 vendor processes customer personal data or has privileged access to p"
           }
         ],
         "n_contexts": 4,
-        "latency_ms": 915.78,
+        "latency_ms": 1416.81,
         "groundedness": 1.0,
         "answer_f1": 0.5714,
         "span_coverage": 1.0,
@@ -5505,12 +5505,12 @@
             "source": "data_engineering_standards.md",
             "page": null,
             "section": "Data Engineering and Pipeline Standards",
-            "score": 5.440083,
+            "score": 5.440082,
             "snippet": "This document describes the standards for data pipelines at Northwind Analytics. It is owned by the Data Platform team, reference DATA-ENG-7.\n\nTier A pipelines feed customer-facing analytics and must complete by 06:00 Central European Time"
           }
         ],
         "n_contexts": 4,
-        "latency_ms": 836.78,
+        "latency_ms": 1418.57,
         "groundedness": 1.0,
         "answer_f1": 0.625,
         "span_coverage": 1.0,
@@ -5539,7 +5539,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 826.62,
+        "latency_ms": 1438.74,
         "groundedness": 1.0,
         "answer_f1": 0.625,
         "span_coverage": 1.0,
@@ -5563,12 +5563,12 @@
             "source": "code_of_conduct.docx",
             "page": null,
             "section": "Our Standards",
-            "score": 4.124976,
+            "score": 4.124977,
             "snippet": "Northwind Analytics expects every employee, contractor and board member to act with honesty, respect and professional integrity. This code is reference GOV-COC-3 and is acknowledged by every employee on joining and annually thereafter. Brea"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 806.82,
+        "latency_ms": 1423.05,
         "groundedness": 1.0,
         "answer_f1": 0.8235,
         "span_coverage": 1.0,
@@ -5592,7 +5592,7 @@
             "source": "vendor_risk_assessment.md",
             "page": null,
             "section": "Vendor Risk Assessment Procedure",
-            "score": 8.068345,
+            "score": 8.068346,
             "snippet": "This procedure describes how Northwind Analytics assesses and monitors third-party vendors. It is owned jointly by Procurement and Security, reference SEC-VR-6.\n\nA Tier 1 vendor processes customer personal data or has privileged access to p"
           },
           {
@@ -5602,12 +5602,12 @@
             "source": "model_governance_policy.md",
             "page": null,
             "section": "Model Governance Policy > Monitoring and Drift",
-            "score": 2.078422,
+            "score": 2.078419,
             "snippet": "Production models are monitored daily for input drift and for prediction distribution shifts. An alert is raised when the population stability index exceeds 0.2, which matches the threshold described in the Engineering Onboarding Guide. A T"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 769.27,
+        "latency_ms": 1401.98,
         "groundedness": 1.0,
         "answer_f1": 0.3673,
         "span_coverage": 1.0,
@@ -5631,12 +5631,12 @@
             "source": "incident_response_runbook.md",
             "page": null,
             "section": "Production Incident Response Runbook",
-            "score": 4.901421,
+            "score": 4.901422,
             "snippet": "This runbook governs how Northwind Analytics responds to production incidents affecting customer-facing systems. It is owned by the Site Reliability Engineering team, reference SRE-IR-9.\n\nA SEV1 incident is a total loss of service, a confir"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 779.56,
+        "latency_ms": 1416.69,
         "groundedness": 1.0,
         "answer_f1": 0.9167,
         "span_coverage": 1.0,
@@ -5654,7 +5654,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 765.8,
+        "latency_ms": 1405.36,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -5678,7 +5678,7 @@
             "source": "information_security_policy.docx",
             "page": null,
             "section": "Incident Response",
-            "score": -5.76465,
+            "score": -5.764648,
             "snippet": "Security incidents are classified from SEV-1, the most severe, to SEV-4. A SEV-1 incident must be acknowledged by the on-call security engineer within 15 minutes. Suspected security incidents must be reported to the security team within 1 h"
           },
           {
@@ -5688,7 +5688,7 @@
             "source": "model_governance_policy.md",
             "page": null,
             "section": "Model Governance Policy > Monitoring and Drift",
-            "score": -6.116127,
+            "score": -6.11613,
             "snippet": "Production models are monitored daily for input drift and for prediction distribution shifts. An alert is raised when the population stability index exceeds 0.2, which matches the threshold described in the Engineering Onboarding Guide. A T"
           },
           {
@@ -5698,12 +5698,12 @@
             "source": "information_security_policy.docx",
             "page": null,
             "section": "Endpoint Management",
-            "score": -7.579544,
+            "score": -7.579543,
             "snippet": "All company devices must be enrolled in mobile device management before first use and must run the approved endpoint detection and response agent. Operating system and application patches are applied within 7 days for critical vulnerabiliti"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 737.23,
+        "latency_ms": 1390.37,
         "groundedness": 0.9574,
         "answer_f1": 0.0727,
         "span_coverage": 0.0,
@@ -5732,7 +5732,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 800.36,
+        "latency_ms": 1396.67,
         "groundedness": 1.0,
         "answer_f1": 0.087,
         "span_coverage": 0.0,
@@ -5756,7 +5756,7 @@
             "source": "model_governance_policy.md",
             "page": null,
             "section": "Model Governance Policy",
-            "score": 4.670696,
+            "score": 4.670697,
             "snippet": "This policy governs how machine learning models are approved, deployed and monitored at Northwind Analytics. It applies to every model whose output is visible to a customer or used to make an automated decision.\n\nModels are assigned to one"
           },
           {
@@ -5766,12 +5766,12 @@
             "source": "model_governance_policy.md",
             "page": null,
             "section": "Model Governance Policy > Monitoring and Drift",
-            "score": 1.865488,
+            "score": 1.865487,
             "snippet": "Production models are monitored daily for input drift and for prediction distribution shifts. An alert is raised when the population stability index exceeds 0.2, which matches the threshold described in the Engineering Onboarding Guide. A T"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 777.51,
+        "latency_ms": 1412.82,
         "groundedness": 1.0,
         "answer_f1": 0.3273,
         "span_coverage": 0.0,
@@ -5789,7 +5789,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 4,
-        "latency_ms": 796.47,
+        "latency_ms": 1457.4,
         "groundedness": 0.0,
         "answer_f1": 0.08,
         "span_coverage": 0.0,
@@ -5813,7 +5813,7 @@
             "source": "it_service_desk_guide.md",
             "page": null,
             "section": "IT Service Desk Guide",
-            "score": 3.206006,
+            "score": 3.206003,
             "snippet": "This guide explains how employees request help from the internal IT service desk. It covers internal support only. Commitments made to paying customers are defined in the Customer Support Service Level Agreement and are not affected by this"
           },
           {
@@ -5823,12 +5823,12 @@
             "source": "customer_support_sla.md",
             "page": null,
             "section": "Customer Support Service Level Agreement",
-            "score": 0.134375,
+            "score": 0.134373,
             "snippet": "This document defines the support commitments of Northwind Analytics for customers on the Standard and Enterprise plans. It is contractually binding and is reviewed each quarter.\n\nStandard plan support operates 08:00 to 20:00 Central Europe"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 868.42,
+        "latency_ms": 1462.62,
         "groundedness": 0.9583,
         "answer_f1": 0.4737,
         "span_coverage": 1.0,
@@ -5846,7 +5846,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 833.26,
+        "latency_ms": 1446.4,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -5864,7 +5864,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 814.54,
+        "latency_ms": 1435.44,
         "groundedness": 0.0,
         "answer_f1": 0.1,
         "span_coverage": 0.0,
@@ -5893,7 +5893,7 @@
           }
         ],
         "n_contexts": 4,
-        "latency_ms": 809.04,
+        "latency_ms": 1448.18,
         "groundedness": 1.0,
         "answer_f1": 0.5405,
         "span_coverage": 0.5,
@@ -5917,12 +5917,12 @@
             "source": "employee_handbook.pdf",
             "page": 2,
             "section": "Referrals",
-            "score": 5.64629,
+            "score": 5.646288,
             "snippet": "Employees receive a referral bonus of 1500 US dollars when a referred candidate is hired and completes 6 months of continuous service. There is no limit on the number of referrals an employee may make.\n\nNew employees serve a probation perio"
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 815.86,
+        "latency_ms": 1423.98,
         "groundedness": 1.0,
         "answer_f1": 0.2857,
         "span_coverage": 0.3333,
@@ -5940,7 +5940,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 843.11,
+        "latency_ms": 1490.76,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -5958,7 +5958,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 762.16,
+        "latency_ms": 1368.54,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -5976,7 +5976,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 780.24,
+        "latency_ms": 1425.48,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -5994,7 +5994,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 4,
-        "latency_ms": 837.82,
+        "latency_ms": 1409.85,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -6012,7 +6012,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 765.3,
+        "latency_ms": 1401.86,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -6036,12 +6036,12 @@
             "source": "information_security_policy.docx",
             "page": null,
             "section": "Scope and Ownership",
-            "score": 2.536056,
+            "score": 2.536055,
             "snippet": "This Information Security Policy, reference ISP-2024-03, applies to all employees, contractors and third parties who access Northwind Analytics systems or data. The policy is owned by the Chief Information Security Officer and is formally r"
           }
         ],
         "n_contexts": 4,
-        "latency_ms": 805.18,
+        "latency_ms": 1376.81,
         "groundedness": 1.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -6059,7 +6059,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 921.69,
+        "latency_ms": 1416.21,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -6077,7 +6077,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 826.39,
+        "latency_ms": 1376.3,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
