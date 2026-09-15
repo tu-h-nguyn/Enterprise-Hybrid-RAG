@@ -1,0 +1,13 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.git/
+.gitignore
+# Rebuilt inside the container by scripts/ingest.py
+data/processed/
+.env
+.env.local
+*.md
+!README.md

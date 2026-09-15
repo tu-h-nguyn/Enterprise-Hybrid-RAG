@@ -20,20 +20,44 @@ State of the repository, and exactly what is left to do. Written for whoever
 | 9 | LLM layer: OpenAI-compatible, Anthropic, offline extractive | **done** |
 | 10 | No-answer gate (`app/services/confidence.py`, per-stage thresholds) | **done, wired** |
 | 11 | Eval dataset **schema + resolver** | done |
-| 11 | Eval dataset **content (30–50 questions)** | **MISSING** |
-| 12 | Retrieval metrics (R@1/3/5/10, MRR, nDCG, precision) + evaluator | done |
+| 11 | Eval dataset **content (50 questions)** | **done** |
+| 12 | Retrieval metrics (R@1/3/5/10, MRR, nDCG, precision) + evaluator | done, **bug fixed** |
 | 13 | Generation metrics (groundedness, citation support, token-F1, LLM judge) | done |
-| 14 | `app/evaluation/experiments.py` + ablation runner | **MISSING** |
-| 15 | FastAPI app (`/health`, `/documents*`, `/query`) | done, **not yet smoke-tested** |
-| 16 | Streamlit UI | **MISSING** |
-| 17 | Tests (`tests/unit`, `tests/integration`) | **MISSING** |
-| 18 | Observability (JSON logs, `Stopwatch`, `QueryTrace`) | done |
-| 19 | Dockerfile / docker-compose | **MISSING** |
-| 20 | README | **MISSING** |
-| 22 | Final verification run | **NOT DONE** |
+| 14 | `app/evaluation/experiments.py` + ablation runner | **done, runs** |
+| 15 | FastAPI app (`/health`, `/documents*`, `/query`) | done, **smoke-tested** |
+| 16 | Streamlit UI | **done, driven in a browser** |
+| 17 | Tests (`tests/unit`, `tests/integration`) | **done — 101 pass** |
+| 19 | Dockerfile / docker-compose | **done, built and served in CI** |
+| 20 | README | **done, numbers measured** |
+| 22 | Final verification run | **done** |
 
-**No benchmark numbers have been produced yet. None are written anywhere.**
-Do not invent any. Every number in the README must come from an actual run.
+Benchmark numbers now exist in `data/evaluation/results.json` and `report.md`,
+and are quoted in the README. They were produced by real runs on the offline
+fallback backends (see §3) and every artefact records which backends produced
+it. **They are not MiniLM numbers.** Re-run `scripts/benchmark.py` on a machine
+with hub access before quoting them as neural-model results.
+
+CI (`.github/workflows/ci.yml`) now runs two jobs per PR: tests + label audit +
+an API smoke test on pinned offline backends, and a Docker job that builds both
+image targets, ingests inside the container and queries the live API. The Docker
+job leaves backends on `auto`, and a runner can reach the hub, so it confirmed
+that `all-MiniLM-L6-v2` and the cross-encoder load and answer correctly
+(`/health` reports both; the annual-leave question cites `employee_handbook.pdf`
+p.1). The build gap the previous session could not close is closed.
+
+### What a later session still needs to do
+
+1. **Re-run the whole benchmark with the neural backends.** The path is known to
+   work now, but every number in the README and `results.json` is still a
+   fallback number. The paraphrased row (R@1 0.0000–0.1111) is the one expected
+   to move most. Budget for the cost: reranking one query took 1664.59 ms with
+   the cross-encoder on a CPU runner, against 2.9 ms for the lexical fallback.
+2. **Re-tune `min_lexical_rerank_score` / `min_rerank_score` afterwards.** The
+   current gate over-refuses 15 of 43 answerable questions, but most of that is
+   a downstream symptom of lexical retrieval rather than a bad constant, so
+   tuning before the encoder swap would fit the wrong problem.
+3. **Consider a CPU-only torch install.** The image is 7.29 GB, most of it CUDA
+   wheels nothing here uses.
 
 ---
 
