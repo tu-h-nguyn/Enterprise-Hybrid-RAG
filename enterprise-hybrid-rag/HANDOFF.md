@@ -3,6 +3,12 @@
 State of the repository, and exactly what is left to do. Written for whoever
 (or whatever) picks this up next.
 
+This file lives at `enterprise-hybrid-rag/HANDOFF.md` and there is exactly one
+copy. It used to exist twice, here and at the repository root, and the two had
+already drifted apart before anyone noticed — which is what a duplicated
+source-of-truth document always does. Every path below is relative to this
+directory, which is the reason this is the copy that survived.
+
 ---
 
 ## 1. Status by phase
@@ -26,17 +32,19 @@ State of the repository, and exactly what is left to do. Written for whoever
 | 14 | `app/evaluation/experiments.py` + ablation runner | **done, runs** |
 | 15 | FastAPI app (`/health`, `/documents*`, `/query`) | done, **smoke-tested** |
 | 16 | Streamlit UI | **done, driven in a browser** |
-| 17 | Tests (`tests/unit`, `tests/integration`) | **done — 101 pass** |
+| 17 | Tests (`tests/unit`, `tests/integration`) | **done — 151 pass** |
 | 18 | Observability (JSON logs, `Stopwatch`, `QueryTrace`) | done, **asserted in tests** |
 | 19 | Dockerfile / docker-compose | **done, built and served in CI** |
 | 20 | README | **done, numbers measured on neural backends** |
 | 22 | Final verification run | **done** |
 
-Benchmark numbers now exist in `data/evaluation/results.json` and `report.md`,
-and are quoted in the README. They were produced by real runs on the offline
-fallback backends (see §3) and every artefact records which backends produced
-it. **They are not MiniLM numbers.** Re-run `scripts/benchmark.py` on a machine
-with hub access before quoting them as neural-model results.
+Benchmark numbers exist in `data/evaluation/results.json` and `report.md`, and
+are quoted in both READMEs. **These are MiniLM numbers**: they come from
+`.github/workflows/benchmark.yml`, which pins the neural backends and asserts a
+384-dimension `sentence_transformers` embedder in the index manifest before it
+measures anything. Every artefact records which backends produced it, and the
+offline run is kept separately in `results_fallback.json` — see §3 for why the
+development sandbox cannot produce the neural numbers itself.
 
 CI (`.github/workflows/ci.yml`) now runs two jobs per PR: tests + label audit +
 an API smoke test on pinned offline backends, and a Docker job that builds both
@@ -54,22 +62,32 @@ informative result in the project.
 
 ### What a later session still needs to do
 
-1. **Measure generation against a real LLM.** Retrieval is now measured on real
+1. **Measure generation against a real LLM.** Retrieval is measured on real
    models, but the answer layer is still extractive because CI has no key. A
    local Ollama server needs no key and keeps the corpus on the machine; that
    also unlocks the LLM judge, which refuses to run on the extractive backend.
-2. **Revisit `chunk_size_tokens`.** 256 beats the shipped 500 by 9.3 points of
-   R@1 for the production configuration (0.7946 vs 0.7016). Not changed yet: one
-   50-question corpus is thin evidence for re-tuning a default, and changing it
-   would invalidate the ablation table that motivates the change.
+   Everything below item 2 is blocked on this one, directly or indirectly.
+2. **Compare chunk sizes at a fixed context budget.** `chunk_size_tokens` moved
+   from 500 to 256 on the evidence of the corpus-scale sweep — 256 wins R@1 at
+   every corpus size from 44 to ~8500 chunks, and halves reranking latency. What
+   that comparison does *not* control for is context budget: five chunks of 500
+   tokens hand the generator twice the text that five chunks of 256 do. Run
+   `top_k=10` at 256 against `top_k=5` at 500 to settle it like for like.
 3. **Re-tune the abstention thresholds.** The gate still over-refuses 15 of 43
-   answerable questions, and the rate did not move when the encoder improved —
-   so it is dominated by the extractive backend's exact-token matching, and
-   should be re-tuned only after item 1.
-4. **`multi_step` is the weakest answerable category** (R@1 0.4524). Nothing here
-   decomposes a question or retrieves iteratively.
-5. **Consider a CPU-only torch install.** The image is 7.29 GB, most of it CUDA
-   wheels nothing here uses.
+   answerable questions, and the rate did not move when the encoder improved or
+   when the chunk size changed — so it is dominated by the extractive backend's
+   exact-token matching, and should be re-tuned only after item 1.
+4. **`multi_step` is the weakest answerable category** (R@1 0.4524, against a
+   perfect 1.0000 MRR — the *first* relevant chunk is always ranked first and
+   what is missing is the second one). Nothing here decomposes a question or
+   retrieves iteratively, and no amount of reranking substitutes for that.
+5. **Put the demo at a URL.** `frontend/embedded_api.py` makes the UI runnable in
+   one process with no API to point at, which is what Streamlit Community Cloud
+   and Hugging Face Spaces need. The remaining step needs an account, not code.
+6. **Trim the benchmark workflow if it gets in the way.** The corpus-scale job
+   now sweeps two chunk sizes and two vector stores and takes roughly 25 minutes
+   on top of the benchmark job. If that becomes a tax on every pull request, run
+   the extra chunk size only on `workflow_dispatch`.
 
 ---
 
@@ -239,4 +257,9 @@ the numbers into the README.
 * `data/processed/` (Chroma + the fitted embedder pickle) is gitignored; it is
   rebuilt by `scripts/ingest.py`.
 * The `tfidf_svd` embedding dimension is capped by corpus size
-  (77 chunks → 76 dims). It is a fixed 384 under `all-MiniLM-L6-v2`.
+  (77 chunks → 76 dims). It is a fixed 384 under `all-MiniLM-L6-v2`. This is why
+  the fallback artefacts cannot settle a chunking question: they vary the
+  encoder along with the chunk size, and the report renderer says so on its face.
+* Two copies of this file used to exist, at the repository root and here. They
+  had already drifted. If you add a second copy of anything that claims to be a
+  source of truth, expect the same.

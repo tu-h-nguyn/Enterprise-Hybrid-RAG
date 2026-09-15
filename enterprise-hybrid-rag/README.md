@@ -623,6 +623,10 @@ CI (`.github/workflows/ci.yml`) runs two jobs on every pull request:
 
 ## Limitations
 
+The full list, including the interface contracts this code is not allowed to
+break and the status of every phase, lives in [`HANDOFF.md`](HANDOFF.md) —
+one copy, in this directory, because the paths in it are relative to here.
+
 Stated plainly, because each one bounds how far the numbers above generalise.
 
 1. **Retrieval is measured on real models; generation is not.** The tables above

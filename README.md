@@ -5,7 +5,7 @@
 [![CI](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml)
 [![Benchmark](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
-![Tests](https://img.shields.io/badge/tests-150%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-151%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-79%25-green)
 ![Ruff](https://img.shields.io/badge/lint-ruff-261230)
 ![mypy](https://img.shields.io/badge/types-mypy%20clean-blue)
@@ -300,7 +300,7 @@ pip install -r requirements-dev.txt
 
 ruff check .    # lint and import order
 mypy            # 70 source files, clean
-pytest          # 150 tests, no network and no API key
+pytest          # 151 tests, no network and no API key
 ```
 
 `mypy` runs over `app/`, `scripts/` and `frontend/` and reports no issues, which is what
@@ -349,9 +349,12 @@ Two workflows run per pull request:
 | [`app/evaluation/`](enterprise-hybrid-rag/app/evaluation) | Dataset schema, resolver, metrics, experiment runner |
 | [`app/services/`](enterprise-hybrid-rag/app/services) | RAG pipeline, abstention gate, document lifecycle |
 | [`scripts/`](enterprise-hybrid-rag/scripts) | Ingest, evaluate, benchmark, corpus-scale experiment |
-| [`tests/`](enterprise-hybrid-rag/tests) | 150 unit and integration tests |
+| [`tests/`](enterprise-hybrid-rag/tests) | 151 unit and integration tests |
+| [`HANDOFF.md`](enterprise-hybrid-rag/HANDOFF.md) | The engineering spec: interface contracts, status by phase, and what is still open |
 
 **[Full technical write-up →](enterprise-hybrid-rag/README.md)** — evaluation methodology, why each decision was made, and the complete results.
+
+**[Engineering spec →](enterprise-hybrid-rag/HANDOFF.md)** — the interface contracts the code is not allowed to break, and an honest list of what is still open.
 
 ---
 
