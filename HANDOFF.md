@@ -77,7 +77,7 @@ informative result in the project.
 
 ```bash
 python scripts/make_demo_corpus.py   # 22 documents into data/raw (20 md, 2 pdf, 2 docx… see note)
-python scripts/ingest.py             # -> 22 documents, 44 chunks, Chroma + BM25 built
+python scripts/ingest.py             # -> 22 documents, 77 chunks, Chroma + BM25 built
 ```
 
 Verified working: loaders (real PDF/DOCX bytes), chunking with page provenance,
@@ -216,7 +216,7 @@ query, API example, install, Docker, config, testing, limitations, future work.
 
 Limitations that must be stated honestly: token counts are a
 `chars/4` heuristic, not a real tokenizer; the corpus is synthetic and small
-(44 chunks at the 500-token default) so Recall@5 saturates and **Recall@1 / MRR
+(77 chunks at the 256-token default) so Recall@5 saturates and **Recall@1 / MRR
 are the discriminative metrics**; the no-answer threshold is tuned on one
 corpus; the LLM judge is approximate and is not ground truth.
 
@@ -239,4 +239,4 @@ the numbers into the README.
 * `data/processed/` (Chroma + the fitted embedder pickle) is gitignored; it is
   rebuilt by `scripts/ingest.py`.
 * The `tfidf_svd` embedding dimension is capped by corpus size
-  (44 chunks → 43 dims). It will jump to 384 under `all-MiniLM-L6-v2`.
+  (77 chunks → 76 dims). It is a fixed 384 under `all-MiniLM-L6-v2`.

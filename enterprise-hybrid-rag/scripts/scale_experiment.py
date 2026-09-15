@@ -7,7 +7,7 @@
 
 The question
 ------------
-The labelled corpus is 22 documents / 44 chunks. At that size ``Recall@5`` is
+The labelled corpus is 22 documents / 77 chunks. At that size ``Recall@5`` is
 close to meaningless — five chunks is more than a tenth of everything there is —
 and a reader is entitled to ask whether the headline table only holds because
 the haystack is a haybale.
@@ -90,7 +90,7 @@ DEFAULT_SIZES: tuple[int, ...] = (0, 140, 655, 3400)
 KS: tuple[int, ...] = (1, 3, 5, 10)
 
 #: Both vector stores, at every size. ``chroma`` is HNSW — an *approximate*
-#: index — and ``numpy`` is exhaustive cosine. At 44 chunks they agree because
+#: index — and ``numpy`` is exhaustive cosine. On a small corpus they agree because
 #: HNSW visits everything anyway; the gap that opens as the corpus grows is the
 #: price of approximate search, and is worth reporting rather than assuming.
 DEFAULT_VECTOR_BACKENDS: tuple[VectorBackend, ...] = ("numpy", "chroma")

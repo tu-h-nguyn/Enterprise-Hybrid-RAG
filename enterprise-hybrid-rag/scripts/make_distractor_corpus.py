@@ -5,7 +5,7 @@
 
 Why these documents exist
 -------------------------
-The evaluation corpus is 22 documents / 44 chunks. At that size ``Recall@5``
+The evaluation corpus is 22 documents / 77 chunks. At that size ``Recall@5``
 saturates — five chunks is more than a tenth of the whole corpus — so the
 headline table cannot answer the obvious question: *does the hybrid + reranker
 advantage survive when the gold chunk is one in five thousand?*
