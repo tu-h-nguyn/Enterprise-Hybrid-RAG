@@ -423,6 +423,13 @@ cover ingest → index → query end-to-end and the API via `TestClient`. Fixtur
 build a hermetic index in `tmp_path`, so the suite needs no network, no API key
 and no pre-existing index.
 
+CI (`.github/workflows/ci.yml`) runs the suite on every pull request, then
+ingests the demo corpus, audits the evaluation labels and smoke-tests the API.
+The audit is a blocking gate on purpose: a chunker or loader change can stop
+answer spans resolving, which would silently drive recall to zero and look
+exactly like a retrieval regression. CI pins the offline backends so the run is
+deterministic — model output is not a stable thing to gate a merge on.
+
 ## Limitations
 
 Stated plainly, because each one bounds how far the numbers above generalise.

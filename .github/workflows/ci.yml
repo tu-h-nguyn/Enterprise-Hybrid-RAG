@@ -1,0 +1,108 @@
+name: CI
+
+# The project lives in a subdirectory, but workflow files are only read from
+# the repository root, so every step runs with working-directory set below.
+
+# Pushes to a branch with an open PR are covered by the pull_request event, so
+# push is limited to main to avoid running the same commit twice.
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push supersedes an in-flight run on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: enterprise-hybrid-rag
+
+jobs:
+  test:
+    name: Tests and dataset audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # Pin the offline backends rather than leaving `auto`. A GitHub runner can
+    # reach the model hub, so `auto` would select all-MiniLM-L6-v2 and the
+    # cross-encoder — and then the assertions below would depend on neural model
+    # output, which is not a stable thing to gate a merge on (the abstention
+    # check in particular compares against a cross-encoder logit threshold).
+    # Pinned, this job is deterministic, needs no model download, and fails only
+    # when the pipeline itself regresses. The neural path is exercised by
+    # running the benchmark on a hub-connected machine, not here.
+    env:
+      EMBEDDING_BACKEND: tfidf_svd
+      RERANKER_BACKEND: lexical
+      LLM_PROVIDER: extractive
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: enterprise-hybrid-rag/requirements.txt
+
+      # Installs exactly what the README tells a contributor to install, so CI
+      # validates the documented install path rather than a trimmed variant.
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Hermetic: fixtures build their own index in tmp_path, so this needs no
+      # network, no API key and no pre-existing index.
+      - name: Run tests
+        run: pytest -q
+
+      - name: Ingest the demo corpus
+        run: python scripts/ingest.py --quiet
+
+      # Ground truth is answer spans resolved against the chunks at evaluation
+      # time, so a chunker or loader change can silently stop labels resolving.
+      # An unresolvable label drives recall to zero and looks exactly like a
+      # retrieval failure, which is why this is a blocking gate: the script
+      # exits non-zero when any label fails to resolve.
+      - name: Audit evaluation dataset labels
+        run: python scripts/evaluate.py --audit-only
+
+      - name: Smoke-test the API
+        run: |
+          python - <<'PY'
+          from fastapi.testclient import TestClient
+          from app.main import create_app
+
+          with TestClient(create_app()) as client:
+              health = client.get("/health").json()
+              print("health:", health)
+              assert health["status"] == "ok", health
+              assert health["index_ready"] is True, health
+
+              result = client.post("/query", json={
+                  "question": "How many days of paid annual leave are employees entitled to?",
+                  "top_k": 5,
+              }).json()
+              print("answer:", result["answer"][:160])
+              assert "22 days" in result["answer"], result["answer"]
+              assert result["citations"], "expected at least one citation"
+              assert result["citations"][0]["source"] == "employee_handbook.pdf", result["citations"]
+
+              refusal = client.post("/query", json={
+                  "question": "What is the vesting schedule for employee stock options?",
+              }).json()
+              print("refusal:", refusal["answer"][:160])
+              assert refusal["metadata"]["no_answer"] is True, refusal["metadata"]
+              assert not refusal["citations"], refusal["citations"]
+
+          print("API smoke test passed")
+          PY
