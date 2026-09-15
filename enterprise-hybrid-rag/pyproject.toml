@@ -8,6 +8,11 @@
 line-length = 110
 target-version = "py311"
 extend-exclude = [".venv", "data"]
+# `scripts/` is on sys.path when a CLI runs and when the tests import one, so
+# its modules are first-party. Without this, import sorting classifies them as
+# third-party or first-party depending on which directory ruff was pointed at,
+# and `ruff check .` disagrees with `ruff check tests/`.
+src = [".", "scripts"]
 
 [tool.ruff.lint]
 select = [

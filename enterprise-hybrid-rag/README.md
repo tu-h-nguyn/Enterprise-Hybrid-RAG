@@ -245,6 +245,111 @@ The corpus is re-ingested and both indexes rebuilt at each size, with ground tru
 
 The default has not been changed here, because one 50-question corpus is not enough evidence to re-tune a default on, and because doing so would invalidate the comparison this table exists to make. It is recorded as the first thing to revisit.
 
+### Corpus-scale experiment
+
+Every table above is computed on 44 chunks, 30 of which are the answer to some
+question. That is a haybale, not a haystack: top-5 covers more than a tenth of
+the corpus, Recall@5 saturates, and none of it answers whether the ranking
+survives a realistic index.
+
+So the 50 questions, their answer spans, the chunking and every retrieval
+setting were pinned, and only the corpus grew — with distractor documents on the
+**same topics, in the same register, with the same policy vocabulary**, for other
+fictional companies ([`scripts/make_distractor_corpus.py`](scripts/make_distractor_corpus.py),
+deterministic in its seed, never committed). Padding with off-topic prose would
+have proved nothing: a policy question never retrieves a novel, recall would
+have stayed flat, and the result would have been a rigged win.
+
+Sizes are nested prefixes of one distractor set, so each corpus strictly
+contains the smaller one, and everything is built in a temporary directory so
+the served index is untouched. Recall@1, exhaustive search:
+
+| Chunks | Documents | Gold share | Dense | BM25 | Hybrid (RRF) | **Hybrid + Reranker** |
+|---:|---:|---:|---:|---:|---:|---:|
+| 44 | 22 | 68.18% | 0.5155 | 0.5969 | 0.5620 | **0.7016** |
+| 235 | 162 | 12.77% | 0.4574 | 0.5504 | 0.5039 | **0.6550** |
+| 936 | 677 | 3.21% | 0.4109 | 0.5504 | 0.4806 | **0.6318** |
+| 4658 | 3422 | 0.64% | 0.3643 | 0.5736 | 0.4457 | **0.6318** |
+| | | **change** | **−0.1512** | −0.0233 | −0.1163 | **−0.0698** |
+
+Dense retrieval gives up 29% of its Recall@1 across the range. The reranked
+pipeline gives up 10%, and its Recall@5 falls only from 0.9186 to 0.8566. The
+reranker is worth +0.1861 R@1 over dense alone at 44 chunks and **+0.2675** at
+4658: its value is not constant, it *grows* with the corpus. That is the
+argument for paying its latency, and it is invisible at 44 chunks.
+
+BM25 is nearly flat (−0.0233, which is one question), which is the expected
+shape — exact lexical matching does not care how much other text exists, only
+whether something else matches better.
+
+#### Are the distractors actually hard?
+
+Asserting it would be worthless, so every row measures it. `distr@1` is the share
+of answerable questions whose top hit is a distractor; `distr%@5` is the mean
+share of the top 5 they hold:
+
+| Chunks | Dense distr@1 | Dense distr%@5 | Reranked distr@1 | Reranked distr%@5 |
+|---:|---:|---:|---:|---:|
+| 235 | 0.2326 | 0.5535 | 0.1163 | 0.4233 |
+| 936 | 0.3488 | 0.6837 | 0.1860 | 0.5581 |
+| 4658 | 0.4186 | 0.7814 | 0.1628 | 0.6093 |
+
+At the largest size the distractors take rank 1 on 42% of questions under dense
+retrieval and hold 78% of the top 5. They compete.
+
+#### What approximate search costs
+
+Each size was also run against both vector stores — Chroma's HNSW index and
+exhaustive cosine — because the difference is normally assumed rather than
+measured. With `all-MiniLM-L6-v2` the two agree on **every metric at every size**
+for the reranked pipeline; dense-only and hybrid each diverge by one question,
+and only at 4658 chunks (R@5 by 0.0232 and 0.0233, MRR by 0.0116 and 0.0060). BM25 never touches the vector
+store and reads identical everywhere, which is the control confirming nothing
+else differed between the two runs.
+
+That result does not transfer. Under the offline `tfidf_svd` fallback the same
+comparison loses 0.0233 **R@1** to HNSW at both 936 and 4658 chunks, and is not
+reproducible at all: repeated runs of the same command returned dense R@1 of
+0.3643, 0.3411, 0.3876 and 0.3876 — the last two with BLAS threading pinned to
+one core, which ruled out float reduction order and pointed at the index itself.
+Exhaustive search returned 0.4109 twice and matched on all 86 compared values. "HNSW is fine" is a statement about how well-separated
+these embeddings are, not about HNSW.
+
+#### What it costs to run
+
+| | 44 chunks | 4658 chunks |
+|---|---:|---:|
+| Index build | 8.74 s | 154.99 s |
+| Dense query (exhaustive) | 10.80 ms | 19.14 ms |
+| BM25 query | 0.20 ms | 10.36 ms |
+| Hybrid + rerank query | 1390.88 ms | 1411.69 ms |
+
+Reranking is flat because it always rescores a fixed top-k: the cross-encoder
+never sees the corpus. At 44 chunks it is 99% of query latency; at 4658 it is
+still 96%. Nothing about growing the corpus changes the thing that dominates.
+
+#### Guards
+
+Three failures would have turned this into a lie, so each one aborts the run
+rather than reporting a number:
+
+* **A distractor restating a labelled answer.** Relevance resolves per source
+  document, so a distractor can never be *labelled* relevant — but it would be a
+  correct answer scored as a miss. The run refuses to start if any distractor
+  chunk contains a labelled span.
+* **Gold chunks moving.** If re-ingestion shifted the resolved gold set, a fall
+  in Recall@1 would be a labelling artefact rather than a scale effect. The run
+  asserts the set is identical at every size.
+* **An embedder that changes with the corpus.** `tfidf_svd` derives its width
+  from the corpus rank (43 → 234 → 384 dims here), which would vary the encoder
+  along with the haystack. CI asserts the embedder held at 384 dimensions at
+  every size before it will publish anything.
+
+The distractors remain synthetic. They are hard negatives by construction, but a
+real corpus this size would hold both easier negatives — off-topic material —
+and harder ones, such as near-duplicate revisions of the same policy. Full
+output: [`data/evaluation/scale_report.md`](data/evaluation/scale_report.md).
+
 ### Generation
 
 Produced by the **extractive** backend — sentence selection, not generation. These numbers describe that behaviour and are not LLM quality figures.
@@ -460,12 +565,15 @@ Stated plainly, because each one bounds how far the numbers above generalise.
 2. **Token counts are a `chars/4` heuristic, not a real tokenizer.** Every chunk
    size and context budget in this project is therefore approximate. A real
    tokenizer would shift chunk boundaries and change the ablation.
-3. **The corpus is synthetic and small** — 22 documents, 44 chunks at the 500-token
-   default. Recall@5 saturates, so R@1 and MRR are the only discriminative
-   metrics, and differences of a few points across 43 scored questions are
-   within noise. Nothing here has been shown to hold at enterprise scale, and
-   the per-type rows rest on 6–14 questions each, which is few enough that a
-   single question moves a row by 7–17 points.
+3. **The corpus is synthetic, and the labelled part of it is small** — 22
+   documents, 44 chunks at the 500-token default. Recall@5 saturates, so R@1 and
+   MRR are the only discriminative metrics, and differences of a few points
+   across 43 scored questions are within noise: one question is 0.0233. The
+   per-type rows rest on 6–14 questions each, which is few enough that a single
+   question moves a row by 7–17 points. The corpus-scale experiment grows the
+   index to 4658 chunks and shows the ranking holds, but it grows it with
+   generated documents; the labelled questions are still 50, and no part of this
+   has been validated against a real enterprise corpus.
 4. **Reranking dominates latency** — 1416.77 ms per query against 0.72 ms for
    BM25 alone. Any deployment has to decide whether that precision is worth three
    orders of magnitude of latency, or whether to rerank only when the fusion

@@ -63,8 +63,6 @@ from typing import Literal, get_args
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from make_distractor_corpus import generate as generate_distractors
-
 from app.config.settings import Settings, get_settings
 from app.evaluation.dataset import EvalDataset, RelevanceResolver, normalize
 from app.evaluation.evaluator import (
@@ -78,6 +76,7 @@ from app.ingestion.pipeline import IngestionPipeline
 from app.models.document import Chunk
 from app.observability.logging import configure_logging
 from app.services.rag_service import RagService
+from make_distractor_corpus import generate as generate_distractors
 
 VectorBackend = Literal["chroma", "numpy"]
 
