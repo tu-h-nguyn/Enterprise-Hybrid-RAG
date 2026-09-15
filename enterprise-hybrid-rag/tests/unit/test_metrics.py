@@ -16,6 +16,7 @@ from app.evaluation.generation_metrics import groundedness, token_f1
 from app.evaluation.retrieval_metrics import (
     RetrievalMetrics,
     hit_at_k,
+    max_recall_at_k,
     ndcg_at_k,
     precision_at_k,
     recall_at_k,
@@ -126,3 +127,39 @@ def test_unanswerable_question_rejects_relevance_labels() -> None:
 def test_answerable_question_requires_labels() -> None:
     with pytest.raises(ValueError):
         EvalQuestion(id="q1", question="?", question_type="factual")
+
+
+# ------------------------------------------------------- the recall ceiling
+def test_recall_at_1_is_bounded_by_the_number_of_relevant_chunks() -> None:
+    """A question with three relevant chunks cannot score above 0.3333 at k=1.
+
+    This is why `max_recall@k` is reported. Reading Recall@1 against an imagined
+    1.0 made a saturated category look like the weakest one in this project's
+    own README, for four documents and several weeks.
+    """
+    assert max_recall_at_k({"a"}, 1) == 1.0
+    assert max_recall_at_k({"a", "b"}, 1) == 0.5
+    assert max_recall_at_k({"a", "b", "c"}, 1) == pytest.approx(1 / 3)
+    assert max_recall_at_k({"a", "b", "c"}, 5) == 1.0
+
+
+def test_a_perfect_retriever_reaches_the_ceiling_and_not_1() -> None:
+    """The bound is achievable, so a retriever that hits it has nothing left."""
+    metrics = RetrievalMetrics(ks=(1, 5))
+    # Two questions, one with two relevant chunks, both ranked perfectly.
+    metrics.update(["a", "b", "x"], {"a", "b"})
+    metrics.update(["c", "y", "z"], {"c"})
+
+    summary = metrics.summary()
+
+    assert summary["recall@1"] == summary["max_recall@1"] == 0.75
+    assert summary["recall@5"] == summary["max_recall@5"] == 1.0
+
+
+def test_the_ceiling_ignores_unanswerable_questions() -> None:
+    metrics = RetrievalMetrics(ks=(1,))
+    metrics.update(["a"], {"a"})
+    metrics.update(["b"], set())      # unanswerable: skipped everywhere
+
+    assert metrics.summary()["max_recall@1"] == 1.0
+    assert metrics.summary()["n_skipped"] == 1

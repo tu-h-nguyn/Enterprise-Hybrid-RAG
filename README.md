@@ -5,7 +5,7 @@
 [![CI](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml)
 [![Benchmark](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
-![Tests](https://img.shields.io/badge/tests-151%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-158%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-79%25-green)
 ![Ruff](https://img.shields.io/badge/lint-ruff-261230)
 ![mypy](https://img.shields.io/badge/types-mypy%20clean-blue)
@@ -96,10 +96,13 @@ Treat the timings as an order of magnitude, not a figure: the same pipeline over
 | BM25 only | 0.8571 | **1.0000** | 0.3810 | 0.1111 | 0.8333 |
 | Hybrid (RRF) | **1.0000** | 0.5714 | 0.3810 | 0.2222 | 0.8333 |
 | **Hybrid + Reranker** | **1.0000** | **1.0000** | **0.4524** | **0.4444** | **1.0000** |
+| *highest achievable* | *1.0000* | *1.0000* | ***0.4524*** | *1.0000* | *1.0000* |
 
-The bottom row is not the maximum of the rows above it by accident, but it is close to it everywhere: the reranked pipeline matches the best single retriever on keyword, paraphrased and multi_step, and beats every one of them on factual and terminology.
+The bottom row is the point. **Recall@1 is bounded by `min(1, |relevant|) / |relevant|`**, so a question with two relevant chunks caps at 0.5000 and one with three caps at 0.3333. Every `multi_step` question here has two or three, which puts the ceiling for that column at exactly 0.4524 — and the reranked pipeline scores exactly 0.4524. It is not the weakest category. **It is saturated**: its Recall@5 is 1.0000 and its MRR is 1.0000, meaning every relevant chunk for every multi-step question is retrieved, with one of them always at rank 1.
 
-`multi_step` is the weakest answerable category (0.4524) — questions needing evidence from two or more documents, where no reordering of a single-chunk ranking can help. That is the honest next problem, not a rounding error.
+This README said the opposite for a long time — that `multi_step` was "the weakest answerable category" and "the honest next problem". That was a misreading of a bounded metric against an imagined 1.0, repeated in four documents. The evaluator now reports `max_recall@k` alongside `recall@k` so the mistake is not available to make again.
+
+Against the same bound, the overall picture changes too: the achievable Recall@1 across all 43 answerable questions is **0.9109**, not 1.0, so the reranked pipeline's 0.7946 is **87.2% of what any retriever could reach** — and the genuinely open category is `paraphrased` at 0.4444 against a ceiling of 1.0000.
 
 ### The chunk size was chosen by measurement, and then changed
 
@@ -302,8 +305,8 @@ LLM_API_KEY=ollama    # required non-empty; Ollama ignores the value
 pip install -r requirements-dev.txt
 
 ruff check .    # lint and import order
-mypy            # 70 source files, clean
-pytest          # 151 tests, no network and no API key
+mypy            # 71 source files, clean
+pytest          # 158 tests, no network and no API key
 ```
 
 `mypy` runs over `app/`, `scripts/` and `frontend/` and reports no issues, which is what
@@ -352,7 +355,7 @@ Two workflows run per pull request:
 | [`app/evaluation/`](enterprise-hybrid-rag/app/evaluation) | Dataset schema, resolver, metrics, experiment runner |
 | [`app/services/`](enterprise-hybrid-rag/app/services) | RAG pipeline, abstention gate, document lifecycle |
 | [`scripts/`](enterprise-hybrid-rag/scripts) | Ingest, evaluate, benchmark, corpus-scale experiment |
-| [`tests/`](enterprise-hybrid-rag/tests) | 151 unit and integration tests |
+| [`tests/`](enterprise-hybrid-rag/tests) | 158 unit and integration tests |
 | [`HANDOFF.md`](enterprise-hybrid-rag/HANDOFF.md) | The engineering spec: interface contracts, status by phase, and what is still open |
 
 **[Full technical write-up →](enterprise-hybrid-rag/README.md)** — evaluation methodology, why each decision was made, and the complete results.

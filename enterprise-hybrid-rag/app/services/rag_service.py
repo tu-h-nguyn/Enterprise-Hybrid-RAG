@@ -26,6 +26,12 @@ from app.retrieval.context_builder import ContextBuilder
 from app.retrieval.dense import DenseRetriever
 from app.retrieval.hybrid import HybridConfig, HybridRetriever
 from app.retrieval.reranker import BaseReranker, NoOpReranker, build_reranker
+from app.retrieval.second_hop import (
+    SecondHopConfig,
+    build_expansion_query,
+    fuse_hops,
+    select_expansion_terms,
+)
 from app.retrieval.sparse import SparseRetriever
 from app.services.confidence import ConfidenceGate
 
@@ -127,8 +133,22 @@ class RagService:
         )
 
     # -------------------------------------------------------------- retrieval
+    def _retrieve_once(self, question: str, method: RetrievalMethod,
+                       watch: Stopwatch, stage: str) -> list[RetrievedChunk]:
+        """One pass of whichever retriever ``method`` names."""
+        assert self._dense and self._sparse and self._hybrid
+        if method == "dense":
+            with watch(stage):
+                return self._dense.retrieve(question, self.settings.dense_top_k)
+        if method == "sparse":
+            with watch(stage):
+                return self._sparse.retrieve(question, self.settings.sparse_top_k)
+        with watch(stage):
+            return self._hybrid.retrieve(question)
+
     def retrieve(self, question: str, method: RetrievalMethod, top_k: int,
-                 rerank: bool) -> tuple[list[RetrievedChunk], QueryTrace, Stopwatch]:
+                 rerank: bool, second_hop: bool | None = None
+                 ) -> tuple[list[RetrievedChunk], QueryTrace, Stopwatch]:
         if not self.is_ready:
             raise IndexNotReadyError("No index is loaded. Ingest and index documents first.")
 
@@ -139,21 +159,20 @@ class RagService:
             llm_provider=self.llm.provider, model=self.llm.model,
         )
 
-        assert self._dense and self._sparse and self._hybrid
+        candidates = self._retrieve_once(question, method, watch, "retrieval")
         if method == "dense":
-            with watch("retrieval"):
-                candidates = self._dense.retrieve(question, self.settings.dense_top_k)
             trace.n_dense_candidates = len(candidates)
         elif method == "sparse":
-            with watch("retrieval"):
-                candidates = self._sparse.retrieve(question, self.settings.sparse_top_k)
             trace.n_sparse_candidates = len(candidates)
         else:
-            with watch("retrieval"):
-                candidates = self._hybrid.retrieve(question)
             trace.n_dense_candidates = sum(1 for c in candidates if "dense" in c.component_scores)
             trace.n_sparse_candidates = sum(1 for c in candidates if "sparse" in c.component_scores)
             trace.n_fused_candidates = len(candidates)
+
+        if second_hop is None:
+            second_hop = self.settings.second_hop_enabled
+        if second_hop and candidates:
+            candidates = self._second_hop(question, method, candidates, watch, trace)
 
         use_rerank = rerank and not isinstance(self._reranker, NoOpReranker)
         if use_rerank and candidates:
@@ -167,6 +186,32 @@ class RagService:
 
         trace.top_score = round(candidates[0].score, 6) if candidates else None
         return candidates, trace, watch
+
+    def _second_hop(self, question: str, method: RetrievalMethod,
+                    candidates: list[RetrievedChunk], watch: Stopwatch,
+                    trace: QueryTrace) -> list[RetrievedChunk]:
+        """Widen the candidate pool using the vocabulary of the first hop.
+
+        Returns the first hop unchanged when no useful expansion term survives
+        selection, so a query the expansion cannot help costs one comparison
+        rather than a second retrieval.
+        """
+        config = SecondHopConfig(
+            feedback_chunks=self.settings.second_hop_feedback_chunks,
+            n_terms=self.settings.second_hop_terms,
+            weight=self.settings.second_hop_weight,
+            rrf_k=self.settings.rrf_k,
+        )
+        terms = select_expansion_terms(question, candidates, config)
+        trace.second_hop = True
+        trace.expansion_terms = terms
+        if not terms:
+            return candidates
+
+        expanded = build_expansion_query(question, terms)
+        second = self._retrieve_once(expanded, method, watch, "second_hop")
+        trace.n_second_hop_candidates = len(second)
+        return fuse_hops(candidates, second, config, self.settings.fusion_top_k)
 
     # ------------------------------------------------------------------ query
     def query(self, question: str, top_k: int | None = None,

@@ -18,6 +18,9 @@ class QueryTrace(BaseModel):
     n_dense_candidates: int = 0
     n_sparse_candidates: int = 0
     n_fused_candidates: int = 0
+    second_hop: bool = False
+    n_second_hop_candidates: int = 0
+    expansion_terms: list[str] = Field(default_factory=list)
     n_final_contexts: int = 0
     context_tokens: int = 0
     dropped_duplicates: int = 0

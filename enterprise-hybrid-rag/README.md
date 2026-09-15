@@ -208,6 +208,12 @@ The explanation is entirely in the per-type breakdown below: the TF-IDF fallback
 | BM25 only | 0.8571 | **1.0000** | 0.3810 | 0.1111 | 0.8333 |
 | Hybrid (RRF) | **1.0000** | 0.5714 | 0.3810 | 0.2222 | 0.8333 |
 | **Hybrid + Reranker** | **1.0000** | **1.0000** | **0.4524** | **0.4444** | **1.0000** |
+| *highest achievable* | *1.0000* | *1.0000* | ***0.4524*** | *1.0000* | *1.0000* |
+
+The last row is `max_recall@1`, computed from the gold-set sizes rather than
+assumed to be 1.0. Across all 43 answerable questions the achievable Recall@1 is
+**0.9109**, so the reranked pipeline's 0.7946 is 87.2% of what any retriever
+could reach on this dataset.
 
 ### MRR by question type
 
@@ -226,7 +232,7 @@ Four findings, including the ones that are inconvenient:
 
 3. **Paraphrase remains the weakest retrieval story.** The pipeline ties plain dense at 0.4444 R@1, but dense still has the better MRR (0.6056 against 0.5626): the cross-encoder is itself trained on lexical-ish relevance and sometimes demotes a semantically right chunk that shares no words with the query. Better than the fallback's 0.1111, and far from solved.
 
-4. **`multi_step` is the weakest answerable category overall** (0.4524 R@1 — though a perfect 1.0000 MRR, because the *first* relevant chunk is always ranked first and what is missing is the second one). These need evidence from two or more documents, and nothing in this pipeline decomposes a question or retrieves iteratively. No amount of reranking fixes it. That is the honest next problem.
+4. **`multi_step` is not the weakest category. It is saturated, and this README said otherwise for a long time.** Recall@k is bounded by `min(k, |relevant|) / |relevant|`. Every `multi_step` question here has two or three relevant chunks, so the ceiling for Recall@1 in that column is exactly 0.4524 — and the reranked pipeline scores exactly 0.4524, with Recall@5 of 1.0000 and MRR of 1.0000. Every relevant chunk is retrieved, one of them always at rank 1. There is nothing left to win there, and "nothing in this pipeline decomposes a question" was a true statement offered as the explanation for a number that did not need one. The evaluator now reports `max_recall@k` next to `recall@k`; the genuinely open category is `paraphrased`, at 0.4444 against a ceiling of 1.0000.
 
 ### Chunk-size ablation
 

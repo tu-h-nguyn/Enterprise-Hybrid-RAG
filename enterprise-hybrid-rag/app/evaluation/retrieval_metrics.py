@@ -8,6 +8,13 @@ Definitions used here (stated explicitly because "recall@k" is overloaded):
 * ``precision@k``  fraction of the top k that is relevant.
 * ``MRR``          mean of 1/rank of the first relevant chunk (0 if absent).
 * ``nDCG@k``       binary-gain DCG normalised by the ideal ordering.
+* ``max_recall@k`` the highest ``recall@k`` any retriever could achieve on this
+                   question set. Reported because Recall@k is bounded by
+                   ``min(k, |relevant|) / |relevant|``: a question with three
+                   relevant chunks caps Recall@1 at 0.3333, and reading 0.4524
+                   against an imagined 1.0 makes a saturated category look like
+                   the weakest one. This project made exactly that mistake and
+                   repeated it in four documents before computing the bound.
 
 Questions with no relevant chunks (unanswerable) are excluded from all of the
 above and scored separately by ``no_answer_rate``.
@@ -26,6 +33,13 @@ def recall_at_k(retrieved: list[str], relevant: set[str], k: int) -> float:
         return 0.0
     hits = len(set(retrieved[:k]) & relevant)
     return hits / len(relevant)
+
+
+def max_recall_at_k(relevant: set[str], k: int) -> float:
+    """The best ``recall@k`` obtainable, given how many chunks are relevant."""
+    if not relevant:
+        return 0.0
+    return min(k, len(relevant)) / len(relevant)
 
 
 def hit_at_k(retrieved: list[str], relevant: set[str], k: int) -> float:
@@ -66,6 +80,7 @@ class RetrievalMetrics:
     _hit: dict[int, list[float]] = field(default_factory=dict)
     _precision: dict[int, list[float]] = field(default_factory=dict)
     _ndcg: dict[int, list[float]] = field(default_factory=dict)
+    _max_recall: dict[int, list[float]] = field(default_factory=dict)
     _rr: list[float] = field(default_factory=list)
     n_scored: int = 0
     n_skipped: int = 0
@@ -76,6 +91,7 @@ class RetrievalMetrics:
             self._hit.setdefault(k, [])
             self._precision.setdefault(k, [])
             self._ndcg.setdefault(k, [])
+            self._max_recall.setdefault(k, [])
 
     def update(self, retrieved: list[str], relevant: set[str]) -> None:
         if not relevant:
@@ -87,6 +103,7 @@ class RetrievalMetrics:
             self._hit[k].append(hit_at_k(retrieved, relevant, k))
             self._precision[k].append(precision_at_k(retrieved, relevant, k))
             self._ndcg[k].append(ndcg_at_k(retrieved, relevant, k))
+            self._max_recall[k].append(max_recall_at_k(relevant, k))
         self._rr.append(reciprocal_rank(retrieved, relevant))
 
     @staticmethod
@@ -100,5 +117,6 @@ class RetrievalMetrics:
             out[f"hit@{k}"] = self._mean(self._hit[k])
             out[f"precision@{k}"] = self._mean(self._precision[k])
             out[f"ndcg@{k}"] = self._mean(self._ndcg[k])
+            out[f"max_recall@{k}"] = self._mean(self._max_recall[k])
         out["mrr"] = self._mean(self._rr)
         return out

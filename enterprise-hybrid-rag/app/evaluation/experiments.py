@@ -41,6 +41,7 @@ from pydantic import BaseModel, Field
 from app.config.settings import Settings
 from app.evaluation.dataset import EvalDataset, RelevanceResolver
 from app.evaluation.evaluator import (
+    COMPARISON_CONFIGS,
     DEFAULT_CONFIGS,
     GenerationEvaluator,
     RetrievalConfig,
@@ -156,7 +157,7 @@ class ExperimentRunner:
     # ------------------------------------------------------- main comparison
     def run_retrieval_comparison(
             self, service: RagService, chunks: list[Chunk],
-            configs: Iterable[RetrievalConfig] = DEFAULT_CONFIGS) -> list[dict]:
+            configs: Iterable[RetrievalConfig] = COMPARISON_CONFIGS) -> list[dict]:
         return self._evaluate(service, chunks, tuple(configs))
 
     # -------------------------------------------------------- chunk ablation
