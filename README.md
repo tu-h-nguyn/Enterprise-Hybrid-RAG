@@ -216,6 +216,7 @@ Unit tests cover the PDF loader against a PDF generated inside the test, chunker
 Two workflows run per pull request:
 
 - **CI** — `ruff`, `mypy`, tests with a 70% coverage floor, ingest, a **blocking evaluation-label audit**, and an API smoke test, on pinned offline backends so the job is deterministic. The audit is a real gate: it was verified by deliberately corrupting an answer span and confirming a non-zero exit.
+- **Docker** — builds both image targets with the Actions layer cache, ingests inside the container, then starts it and queries the live API. Without the cache this job re-downloaded ~3 GB of wheels every run and took anywhere from 2 to 37 minutes.
 - **Benchmark** — the full suite on the neural backends. It compares what it just measured against the committed numbers on **quality metrics only**, since latency is wall-clock and moves every run. Identical output means the benchmark reproduced; it commits regenerated results only when a quality metric actually changed. Two independent runs on different runners agreed on all **698** compared values.
 
 ---

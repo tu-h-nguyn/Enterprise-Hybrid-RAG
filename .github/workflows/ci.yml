@@ -120,7 +120,10 @@ jobs:
   docker:
     name: Docker image builds and serves
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Generous only for the cold-cache run: populating the layer cache costs
+    # extra on top of a build that already downloads ~3 GB of wheels. Once the
+    # cache is warm this job finishes in a fraction of it.
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v5
@@ -134,13 +137,44 @@ jobs:
                       /opt/hostedtoolcache/CodeQL /usr/local/.ghcup || true
           echo "after:"; df -h / | tail -1
 
-      - name: Build the api image
-        run: docker build --target api -t enterprise-hybrid-rag:api .
+      # Plain `docker build` re-downloaded roughly 3 GB of wheels on every run,
+      # which made this job take anywhere from 2 to 37 minutes depending on the
+      # runner's bandwidth that day. A CI gate people cannot predict is a gate
+      # people learn to ignore. Buildx with the Actions cache restores that
+      # layer instead of rebuilding it.
+      #
+      # Both targets share one cache scope on purpose: they share every layer up
+      # to the final stage, so the ui build is then almost entirely cache hits.
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
 
-      # Shares every layer with api up to the final stage, so this only proves
-      # the ui target resolves; it costs seconds.
+      # These are `uses` steps, so the job-level working-directory does not
+      # apply and the context and Dockerfile are given explicitly.
+      - name: Build the api image
+        uses: docker/build-push-action@v6
+        with:
+          context: enterprise-hybrid-rag
+          file: enterprise-hybrid-rag/Dockerfile
+          target: api
+          tags: enterprise-hybrid-rag:api
+          load: true
+          cache-from: type=gha,scope=rag
+          # mode=max caches intermediate stages too, which is what makes the ui
+          # build almost free. The Actions cache is capped at 10 GB per
+          # repository and this image is 7.29 GB, so the margin is thin: if
+          # entries start being evicted, the durable fix is a CPU-only torch
+          # install, which the README already lists as a limitation.
+          cache-to: type=gha,scope=rag,mode=max
+
       - name: Build the ui image
-        run: docker build --target ui -t enterprise-hybrid-rag:ui .
+        uses: docker/build-push-action@v6
+        with:
+          context: enterprise-hybrid-rag
+          file: enterprise-hybrid-rag/Dockerfile
+          target: ui
+          tags: enterprise-hybrid-rag:ui
+          load: true
+          cache-from: type=gha,scope=rag
 
       # The image deliberately does not bake the corpus in, so data/ is a bind
       # mount. The container runs as uid 10001, and a bind mount keeps the host
