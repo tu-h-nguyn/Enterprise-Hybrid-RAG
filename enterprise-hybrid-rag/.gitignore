@@ -7,6 +7,11 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
 
 # Rebuilt by scripts/ingest.py — Chroma DB, BM25 index, fitted embedder pickle
 data/processed/
