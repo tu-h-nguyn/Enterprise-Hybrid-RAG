@@ -423,12 +423,19 @@ cover ingest → index → query end-to-end and the API via `TestClient`. Fixtur
 build a hermetic index in `tmp_path`, so the suite needs no network, no API key
 and no pre-existing index.
 
-CI (`.github/workflows/ci.yml`) runs the suite on every pull request, then
-ingests the demo corpus, audits the evaluation labels and smoke-tests the API.
-The audit is a blocking gate on purpose: a chunker or loader change can stop
-answer spans resolving, which would silently drive recall to zero and look
-exactly like a retrieval regression. CI pins the offline backends so the run is
-deterministic — model output is not a stable thing to gate a merge on.
+CI (`.github/workflows/ci.yml`) runs two jobs on every pull request:
+
+* **Tests and dataset audit** — the suite, then ingest, then a label audit, then
+  an API smoke test. The audit is a blocking gate on purpose: a chunker or
+  loader change can stop answer spans resolving, which would silently drive
+  recall to zero and look exactly like a retrieval regression. This job pins the
+  offline backends so it is deterministic — model output is not a stable thing
+  to gate a merge on.
+* **Docker image builds and serves** — builds both image targets, ingests inside
+  the container, then starts it and queries the live API. Backends are left on
+  `auto` here, so this is the one place the neural path is exercised; the
+  selected backend is printed as evidence rather than asserted on, so a hub
+  hiccup cannot turn the build red for the wrong reason.
 
 ## Limitations
 

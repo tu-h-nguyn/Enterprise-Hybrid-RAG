@@ -44,10 +44,10 @@ jobs:
       LLM_PROVIDER: extractive
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -106,3 +106,95 @@ jobs:
 
           print("API smoke test passed")
           PY
+
+  docker:
+    name: Docker image builds and serves
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # torch and the CUDA wheels make the image large; reclaim space from
+      # preinstalled SDKs this build has no use for.
+      - name: Free disk space
+        run: |
+          echo "before:"; df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+                      /opt/hostedtoolcache/CodeQL /usr/local/.ghcup || true
+          echo "after:"; df -h / | tail -1
+
+      - name: Build the api image
+        run: docker build --target api -t enterprise-hybrid-rag:api .
+
+      # Shares every layer with api up to the final stage, so this only proves
+      # the ui target resolves; it costs seconds.
+      - name: Build the ui image
+        run: docker build --target ui -t enterprise-hybrid-rag:ui .
+
+      # The image deliberately does not bake the corpus in, so data/ is a bind
+      # mount. The container runs as uid 10001, and a bind mount keeps the host
+      # ownership, so hand the directory over or the index write fails.
+      - name: Hand the data directory to the container user
+        run: sudo chown -R 10001:10001 data
+
+      - name: Ingest inside the container
+        run: |
+          docker run --rm -v "$PWD/data:/app/data" \
+            enterprise-hybrid-rag:api python scripts/ingest.py --quiet
+
+      # Backends are left on `auto` here on purpose: a runner can reach the
+      # model hub, so this is the one place the neural path actually gets
+      # exercised. The assertions stay loose for that reason — the selected
+      # backend is printed as evidence rather than asserted on.
+      - name: Serve the API from the container and query it
+        run: |
+          docker run -d --name rag-api -p 8000:8000 \
+            -v "$PWD/data:/app/data" enterprise-hybrid-rag:api
+
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8000/health > /dev/null; then
+              echo "API answered after ${i}s"; break
+            fi
+            if [ "$i" = "60" ]; then
+              echo "API never became healthy; container logs follow:"
+              docker logs rag-api
+              docker rm -f rag-api
+              exit 1
+            fi
+            sleep 1
+          done
+
+          echo "--- /health ---"
+          curl -s http://localhost:8000/health | tee /tmp/health.json
+          echo
+          python3 -c "
+          import json, sys
+          h = json.load(open('/tmp/health.json'))
+          print('selected embedding backend:', h['embedding_backend'])
+          print('selected reranker        :', h['reranker'])
+          print('selected llm             :', h['llm_provider'])
+          assert h['status'] == 'ok', h
+          assert h['index_ready'] is True, h
+          assert h['n_chunks'] > 0, h
+          "
+
+          echo "--- /query ---"
+          curl -s -X POST http://localhost:8000/query \
+            -H 'Content-Type: application/json' \
+            -d '{"question":"How many days of paid annual leave are employees entitled to?","top_k":5,"include_chunks":false}' \
+            | tee /tmp/query.json
+          echo
+          python3 -c "
+          import json
+          r = json.load(open('/tmp/query.json'))
+          print('answer:', r['answer'][:200])
+          print('citations:', [(c['source'], c.get('page')) for c in r['citations']])
+          assert r['answer'].strip(), 'empty answer'
+          assert r['metadata']['latency_ms'] > 0, r['metadata']
+          "
+
+          docker rm -f rag-api
+
+      - name: Report image sizes
+        run: docker images enterprise-hybrid-rag --format '{{.Repository}}:{{.Tag}}  {{.Size}}'
