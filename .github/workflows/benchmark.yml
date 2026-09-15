@@ -151,6 +151,10 @@ jobs:
             echo "nothing staged"
           else
             git commit -m "Regenerate benchmark results on the neural backends [skip ci]"
+            # The branch can move while a run this long is in flight — a later
+            # push, or the scale job in the same workflow. Rebase onto whatever
+            # is there rather than losing the run to a non-fast-forward.
+            git pull --rebase origin "${{ github.head_ref || github.ref_name }}"
             git push
           fi
 
