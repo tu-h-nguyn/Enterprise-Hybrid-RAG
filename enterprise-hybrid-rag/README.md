@@ -387,6 +387,12 @@ the build still succeeds and the runtime falls back, reporting it in `/health`.
 Containers run as a non-root user. **No secret is ever baked into the image** —
 keys come from the environment or a gitignored `.env`.
 
+Both targets are built in CI, which then ingests inside the container and
+queries the running API, so the image is verified rather than merely written.
+Note that `data/` is a bind mount by design — the corpus is not baked in — and
+the container runs as uid 10001, so the mounted directory has to be writable by
+that uid.
+
 ## Configuration
 
 Everything is one Pydantic `Settings` object (`app/config/settings.py`); nothing
@@ -446,6 +452,17 @@ Stated plainly, because each one bounds how far the numbers above generalise.
    scorer, and the "LLM" was an extractive sentence selector. Treat the results
    as a floor and as evidence the pipeline works end-to-end — not as a
    measurement of MiniLM, and never as a cross-encoder result.
+   The neural path itself is no longer untested: the Docker CI job runs with
+   `auto` on a runner that can reach the hub, and `/health` there reports
+   `sentence-transformers/all-MiniLM-L6-v2` and `cross_encoder`, answering the
+   annual-leave question correctly with the citation resolving to
+   `employee_handbook.pdf` p.1. That confirms the path *loads and works*; it is
+   a single query, not a benchmark, so **the tables above are still the
+   fallback numbers** until the suite is re-run on that configuration.
+   One observation worth carrying into any such re-run: reranking that single
+   query took **1664.59 ms** with the cross-encoder on a CPU runner, against
+   **2.9 ms** for the lexical fallback in the other CI job — roughly two orders
+   of magnitude, and the dominant cost in the request.
 2. **Token counts are a `chars/4` heuristic, not a real tokenizer.** Every chunk
    size and context budget in this project is therefore approximate. A real
    tokenizer would shift chunk boundaries and change the ablation.
@@ -471,10 +488,12 @@ Stated plainly, because each one bounds how far the numbers above generalise.
    fully grounded answer can score below 1.0 simply by paraphrasing.
 8. **Indexing is a full rebuild**, not an incremental upsert. Correct and fast at
    this size; wrong for a large corpus.
-9. **The Docker build is unverified.** The image definition could not be built in
-   the environment where this was developed, because the container registry was
-   unreachable. `docker compose config` validates and the Dockerfile parses, but
-   no image has been built or run.
+9. **The image is large: 7.29 GB.** `requirements.txt` pulls `torch` with its
+   CUDA wheels even though nothing here uses a GPU. A CPU-only torch index
+   would cut the bulk of that, at the cost of the image no longer matching the
+   documented install. Not changed here because it trades one honest property
+   for another, but it is the first thing to look at before shipping this
+   anywhere real.
 
 ## Future work
 

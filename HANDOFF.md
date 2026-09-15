@@ -27,7 +27,7 @@ State of the repository, and exactly what is left to do. Written for whoever
 | 15 | FastAPI app (`/health`, `/documents*`, `/query`) | done, **smoke-tested** |
 | 16 | Streamlit UI | **done, driven in a browser** |
 | 17 | Tests (`tests/unit`, `tests/integration`) | **done — 101 pass** |
-| 19 | Dockerfile / docker-compose | **written, BUILD UNVERIFIED** |
+| 19 | Dockerfile / docker-compose | **done, built and served in CI** |
 | 20 | README | **done, numbers measured** |
 | 22 | Final verification run | **done** |
 
@@ -37,18 +37,27 @@ fallback backends (see §3) and every artefact records which backends produced
 it. **They are not MiniLM numbers.** Re-run `scripts/benchmark.py` on a machine
 with hub access before quoting them as neural-model results.
 
+CI (`.github/workflows/ci.yml`) now runs two jobs per PR: tests + label audit +
+an API smoke test on pinned offline backends, and a Docker job that builds both
+image targets, ingests inside the container and queries the live API. The Docker
+job leaves backends on `auto`, and a runner can reach the hub, so it confirmed
+that `all-MiniLM-L6-v2` and the cross-encoder load and answer correctly
+(`/health` reports both; the annual-leave question cites `employee_handbook.pdf`
+p.1). The build gap the previous session could not close is closed.
+
 ### What a later session still needs to do
 
-1. **Verify the Docker build.** `docker compose config` validates and the
-   Dockerfile parses, but the container registry was unreachable in the
-   development sandbox (blob CDN returned 403), so no image was ever built or
-   run. Treat `Dockerfile`/`docker-compose.yml` as unverified.
-2. **Re-run the whole benchmark with the neural backends.** The paraphrased
-   question row (R@1 0.0000–0.1111) is the one expected to move most.
-3. **Re-tune `min_lexical_rerank_score` / `min_rerank_score` afterwards.** The
+1. **Re-run the whole benchmark with the neural backends.** The path is known to
+   work now, but every number in the README and `results.json` is still a
+   fallback number. The paraphrased row (R@1 0.0000–0.1111) is the one expected
+   to move most. Budget for the cost: reranking one query took 1664.59 ms with
+   the cross-encoder on a CPU runner, against 2.9 ms for the lexical fallback.
+2. **Re-tune `min_lexical_rerank_score` / `min_rerank_score` afterwards.** The
    current gate over-refuses 15 of 43 answerable questions, but most of that is
    a downstream symptom of lexical retrieval rather than a bad constant, so
    tuning before the encoder swap would fit the wrong problem.
+3. **Consider a CPU-only torch install.** The image is 7.29 GB, most of it CUDA
+   wheels nothing here uses.
 
 ---
 
