@@ -28,11 +28,9 @@ class RetrievalConfig:
     label: str
     method: RetrievalMethod
     rerank: bool = False
-    second_hop: bool = False
 
     def as_dict(self) -> dict:
-        return {"label": self.label, "method": self.method, "rerank": self.rerank,
-                "second_hop": self.second_hop}
+        return {"label": self.label, "method": self.method, "rerank": self.rerank}
 
 
 DEFAULT_CONFIGS: tuple[RetrievalConfig, ...] = (
@@ -41,18 +39,6 @@ DEFAULT_CONFIGS: tuple[RetrievalConfig, ...] = (
     RetrievalConfig("Hybrid (RRF)", "hybrid", False),
     RetrievalConfig("Hybrid + Reranker", "hybrid", True),
 )
-
-#: The production configuration with a second retrieval hop (see
-#: ``app.retrieval.second_hop``). Kept out of ``DEFAULT_CONFIGS`` on purpose: it
-#: exists to answer one question — whether pseudo-relevance feedback rescues the
-#: ``multi_step`` category — and adding it to the corpus-scale sweep would cost a
-#: quarter of that job's runtime to re-answer a question the comparison already
-#: settles at every size that matters.
-SECOND_HOP_CONFIG = RetrievalConfig("Hybrid + Rerank + 2-hop", "hybrid", True, second_hop=True)
-
-#: What the headline comparison table runs.
-COMPARISON_CONFIGS: tuple[RetrievalConfig, ...] = (*DEFAULT_CONFIGS, SECOND_HOP_CONFIG)
-
 
 @dataclass
 class RetrievalRunResult:
@@ -81,8 +67,7 @@ class RetrievalEvaluator:
             started = time.perf_counter()
             # retrieve() returns (candidates, QueryTrace, Stopwatch) — see HANDOFF §4.
             final, _, _ = self.service.retrieve(question.question, config.method,
-                                                self.top_k, config.rerank,
-                                                config.second_hop)
+                                                self.top_k, config.rerank)
             latencies.append((time.perf_counter() - started) * 1000)
             retrieved_ids = [hit.chunk_id for hit in final]
             metrics.update(retrieved_ids, relevant)

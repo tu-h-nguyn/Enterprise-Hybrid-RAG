@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-15T16:08:02+00:00",
+  "generated_at": "2026-09-15T16:11:55+00:00",
   "environment": {
     "python": "3.11.15",
     "platform": "Linux-6.18.44-fc-v33-x86_64-with-glibc2.39"
@@ -64,7 +64,6 @@
       "label": "Dense only",
       "method": "dense",
       "rerank": false,
-      "second_hop": false,
       "metrics": {
         "n_scored": 43,
         "n_skipped": 7,
@@ -90,8 +89,8 @@
         "max_recall@10": 1.0,
         "mrr": 0.7785
       },
-      "latency_ms_mean": 13.11,
-      "latency_ms_p95": 15.46,
+      "latency_ms_mean": 12.43,
+      "latency_ms_p95": 13.92,
       "by_question_type": {
         "factual": {
           "n_scored": 14,
@@ -1176,7 +1175,6 @@
       "label": "BM25 only",
       "method": "sparse",
       "rerank": false,
-      "second_hop": false,
       "metrics": {
         "n_scored": 43,
         "n_skipped": 7,
@@ -1202,8 +1200,8 @@
         "max_recall@10": 1.0,
         "mrr": 0.7597
       },
-      "latency_ms_mean": 0.89,
-      "latency_ms_p95": 1.04,
+      "latency_ms_mean": 0.94,
+      "latency_ms_p95": 1.21,
       "by_question_type": {
         "factual": {
           "n_scored": 14,
@@ -2284,7 +2282,6 @@
       "label": "Hybrid (RRF)",
       "method": "hybrid",
       "rerank": false,
-      "second_hop": false,
       "metrics": {
         "n_scored": 43,
         "n_skipped": 7,
@@ -2310,8 +2307,8 @@
         "max_recall@10": 1.0,
         "mrr": 0.7784
       },
-      "latency_ms_mean": 14.04,
-      "latency_ms_p95": 15.98,
+      "latency_ms_mean": 12.93,
+      "latency_ms_p95": 14.27,
       "by_question_type": {
         "factual": {
           "n_scored": 14,
@@ -3396,7 +3393,6 @@
       "label": "Hybrid + Reranker",
       "method": "hybrid",
       "rerank": true,
-      "second_hop": false,
       "metrics": {
         "n_scored": 43,
         "n_skipped": 7,
@@ -3422,8 +3418,8 @@
         "max_recall@10": 1.0,
         "mrr": 0.7541
       },
-      "latency_ms_mean": 15.27,
-      "latency_ms_p95": 17.78,
+      "latency_ms_mean": 15.69,
+      "latency_ms_p95": 18.61,
       "by_question_type": {
         "factual": {
           "n_scored": 14,
@@ -4503,1118 +4499,6 @@
           "top_score": 0.957273
         }
       ]
-    },
-    {
-      "label": "Hybrid + Rerank + 2-hop",
-      "method": "hybrid",
-      "rerank": true,
-      "second_hop": true,
-      "metrics": {
-        "n_scored": 43,
-        "n_skipped": 7,
-        "recall@1": 0.6434,
-        "hit@1": 0.7209,
-        "precision@1": 0.7209,
-        "ndcg@1": 0.7209,
-        "max_recall@1": 0.9109,
-        "recall@3": 0.7558,
-        "hit@3": 0.7674,
-        "precision@3": 0.3178,
-        "ndcg@3": 0.7378,
-        "max_recall@3": 1.0,
-        "recall@5": 0.7791,
-        "hit@5": 0.7907,
-        "precision@5": 0.1953,
-        "ndcg@5": 0.7468,
-        "max_recall@5": 1.0,
-        "recall@10": 0.8256,
-        "hit@10": 0.8372,
-        "precision@10": 0.1023,
-        "ndcg@10": 0.7613,
-        "max_recall@10": 1.0,
-        "mrr": 0.7506
-      },
-      "latency_ms_mean": 29.92,
-      "latency_ms_p95": 35.92,
-      "by_question_type": {
-        "factual": {
-          "n_scored": 14,
-          "n_skipped": 0,
-          "recall@1": 0.9286,
-          "hit@1": 0.9286,
-          "precision@1": 0.9286,
-          "ndcg@1": 0.9286,
-          "max_recall@1": 1.0,
-          "recall@3": 0.9286,
-          "hit@3": 0.9286,
-          "precision@3": 0.3095,
-          "ndcg@3": 0.9286,
-          "max_recall@3": 1.0,
-          "recall@5": 0.9286,
-          "hit@5": 0.9286,
-          "precision@5": 0.1857,
-          "ndcg@5": 0.9286,
-          "max_recall@5": 1.0,
-          "recall@10": 0.9286,
-          "hit@10": 0.9286,
-          "precision@10": 0.0929,
-          "ndcg@10": 0.9286,
-          "max_recall@10": 1.0,
-          "mrr": 0.9286
-        },
-        "keyword": {
-          "n_scored": 7,
-          "n_skipped": 0,
-          "recall@1": 1.0,
-          "hit@1": 1.0,
-          "precision@1": 1.0,
-          "ndcg@1": 1.0,
-          "max_recall@1": 1.0,
-          "recall@3": 1.0,
-          "hit@3": 1.0,
-          "precision@3": 0.3333,
-          "ndcg@3": 1.0,
-          "max_recall@3": 1.0,
-          "recall@5": 1.0,
-          "hit@5": 1.0,
-          "precision@5": 0.2,
-          "ndcg@5": 1.0,
-          "max_recall@5": 1.0,
-          "recall@10": 1.0,
-          "hit@10": 1.0,
-          "precision@10": 0.1,
-          "ndcg@10": 1.0,
-          "max_recall@10": 1.0,
-          "mrr": 1.0
-        },
-        "multi_step": {
-          "n_scored": 7,
-          "n_skipped": 0,
-          "recall@1": 0.381,
-          "hit@1": 0.8571,
-          "precision@1": 0.8571,
-          "ndcg@1": 0.8571,
-          "max_recall@1": 0.4524,
-          "recall@3": 0.9286,
-          "hit@3": 1.0,
-          "precision@3": 0.7143,
-          "ndcg@3": 0.8895,
-          "max_recall@3": 1.0,
-          "recall@5": 0.9286,
-          "hit@5": 1.0,
-          "precision@5": 0.4286,
-          "ndcg@5": 0.8895,
-          "max_recall@5": 1.0,
-          "recall@10": 0.9286,
-          "hit@10": 1.0,
-          "precision@10": 0.2143,
-          "ndcg@10": 0.8895,
-          "max_recall@10": 1.0,
-          "mrr": 0.9286
-        },
-        "paraphrased": {
-          "n_scored": 9,
-          "n_skipped": 0,
-          "recall@1": 0.1111,
-          "hit@1": 0.1111,
-          "precision@1": 0.1111,
-          "ndcg@1": 0.1111,
-          "max_recall@1": 1.0,
-          "recall@3": 0.1111,
-          "hit@3": 0.1111,
-          "precision@3": 0.037,
-          "ndcg@3": 0.1111,
-          "max_recall@3": 1.0,
-          "recall@5": 0.1111,
-          "hit@5": 0.1111,
-          "precision@5": 0.0222,
-          "ndcg@5": 0.1111,
-          "max_recall@5": 1.0,
-          "recall@10": 0.3333,
-          "hit@10": 0.3333,
-          "precision@10": 0.0333,
-          "ndcg@10": 0.1803,
-          "max_recall@10": 1.0,
-          "mrr": 0.1381
-        },
-        "terminology": {
-          "n_scored": 6,
-          "n_skipped": 0,
-          "recall@1": 0.6667,
-          "hit@1": 0.6667,
-          "precision@1": 0.6667,
-          "ndcg@1": 0.6667,
-          "max_recall@1": 1.0,
-          "recall@3": 0.8333,
-          "hit@3": 0.8333,
-          "precision@3": 0.2778,
-          "ndcg@3": 0.75,
-          "max_recall@3": 1.0,
-          "recall@5": 1.0,
-          "hit@5": 1.0,
-          "precision@5": 0.2,
-          "ndcg@5": 0.8145,
-          "max_recall@5": 1.0,
-          "recall@10": 1.0,
-          "hit@10": 1.0,
-          "precision@10": 0.1,
-          "ndcg@10": 0.8145,
-          "max_recall@10": 1.0,
-          "mrr": 0.7556
-        }
-      },
-      "per_question": [
-        {
-          "id": "q001",
-          "question_type": "factual",
-          "n_relevant": 1,
-          "retrieved": [
-            "employee_handbook_001_001",
-            "employee_handbook_003_006",
-            "employee_handbook_002_005",
-            "employee_handbook_001_002",
-            "compensation_and_benefits_001_002",
-            "contractor_engagement_policy_000_001",
-            "remote_work_policy_000_002",
-            "remote_work_policy_000_001",
-            "office_facilities_guide_000_002",
-            "hr_recruitment_process_000_000"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 3.230307
-        },
-        {
-          "id": "q002",
-          "question_type": "factual",
-          "n_relevant": 1,
-          "retrieved": [
-            "information_security_policy_000_000",
-            "data_retention_schedule_000_000",
-            "it_service_desk_guide_000_002",
-            "contractor_engagement_policy_000_002",
-            "finance_procurement_policy_001_001",
-            "office_facilities_guide_000_000",
-            "data_retention_schedule_000_001",
-            "vendor_risk_assessment_000_000",
-            "vendor_risk_assessment_000_001",
-            "customer_support_sla_000_003"
-          ],
-          "first_hit_rank": null,
-          "top_score": 1.840674
-        },
-        {
-          "id": "q003",
-          "question_type": "factual",
-          "n_relevant": 1,
-          "retrieved": [
-            "customer_support_sla_000_001",
-            "it_service_desk_guide_000_001",
-            "engineering_onboarding_000_001",
-            "customer_support_sla_000_000",
-            "data_engineering_standards_000_001",
-            "information_security_policy_000_004",
-            "hr_recruitment_process_000_002",
-            "information_security_policy_000_005",
-            "it_service_desk_guide_000_000",
-            "compensation_and_benefits_001_002"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 3.483686
-        },
-        {
-          "id": "q004",
-          "question_type": "factual",
-          "n_relevant": 1,
-          "retrieved": [
-            "travel_expense_policy_000_001",
-            "compensation_and_benefits_001_002",
-            "contractor_engagement_policy_000_000",
-            "employee_handbook_002_005",
-            "engineering_onboarding_000_003",
-            "data_engineering_standards_000_001",
-            "ml_platform_standards_000_001",
-            "ml_platform_standards_000_002",
-            "contractor_engagement_policy_000_001",
-            "travel_expense_policy_000_002"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 1.231141
-        },
-        {
-          "id": "q005",
-          "question_type": "factual",
-          "n_relevant": 1,
-          "retrieved": [
-            "finance_procurement_policy_001_000",
-            "finance_procurement_policy_001_001",
-            "travel_expense_policy_000_002",
-            "finance_procurement_policy_001_002",
-            "data_retention_schedule_000_001",
-            "engineering_onboarding_000_002",
-            "customer_support_sla_000_002",
-            "employee_handbook_003_007",
-            "hr_recruitment_process_000_001",
-            "compensation_and_benefits_001_000"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 2.98515
-        },
-        {
-          "id": "q006",
-          "question_type": "factual",
-          "n_relevant": 1,
-          "retrieved": [
-            "incident_response_runbook_000_000",
-            "data_engineering_standards_000_000",
-            "model_governance_policy_000_002",
-            "information_security_policy_000_002",
-            "it_service_desk_guide_000_000",
-            "product_release_process_000_001",
-            "incident_response_runbook_000_001",
-            "business_continuity_plan_000_001",
-            "engineering_onboarding_000_003",
-            "incident_response_runbook_000_002"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 3.267517
-        },
-        {
-          "id": "q007",
-          "question_type": "factual",
-          "n_relevant": 1,
-          "retrieved": [
-            "remote_work_policy_000_001",
-            "employee_handbook_001_002",
-            "employee_handbook_002_005",
-            "contractor_engagement_policy_000_001",
-            "engineering_onboarding_000_002",
-            "incident_response_runbook_000_000",
-            "employee_handbook_003_006",
-            "employee_handbook_001_001",
-            "compensation_and_benefits_001_002",
-            "remote_work_policy_000_002"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 2.952929
-        },
-        {
-          "id": "q008",
-          "question_type": "factual",
-          "n_relevant": 1,
-          "retrieved": [
-            "office_facilities_guide_000_000",
-            "office_facilities_guide_000_001",
-            "employee_handbook_001_000",
-            "hr_recruitment_process_000_001",
-            "it_service_desk_guide_000_001",
-            "remote_work_policy_000_002",
-            "it_service_desk_guide_000_000",
-            "data_engineering_standards_000_001",
-            "incident_response_runbook_000_002",
-            "contractor_engagement_policy_000_001"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 3.412007
-        },
-        {
-          "id": "q009",
-          "question_type": "factual",
-          "n_relevant": 1,
-          "retrieved": [
-            "engineering_onboarding_000_002",
-            "employee_handbook_001_002",
-            "data_processing_agreement_000_000",
-            "engineering_onboarding_000_001",
-            "data_engineering_standards_000_001",
-            "contractor_engagement_policy_000_000",
-            "finance_procurement_policy_001_001",
-            "information_security_policy_000_004",
-            "code_of_conduct_000_002",
-            "data_retention_schedule_000_002"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 2.51545
-        },
-        {
-          "id": "q010",
-          "question_type": "factual",
-          "n_relevant": 1,
-          "retrieved": [
-            "data_retention_schedule_000_001",
-            "data_retention_schedule_000_000",
-            "code_of_conduct_000_001",
-            "business_continuity_plan_000_000",
-            "vendor_risk_assessment_000_001",
-            "employee_handbook_002_003",
-            "employee_handbook_001_001",
-            "employee_handbook_001_000",
-            "employee_handbook_001_002",
-            "information_security_policy_000_001"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 3.427509
-        },
-        {
-          "id": "q011",
-          "question_type": "factual",
-          "n_relevant": 1,
-          "retrieved": [
-            "product_release_process_000_000",
-            "employee_handbook_001_002",
-            "contractor_engagement_policy_000_001",
-            "data_retention_schedule_000_000",
-            "product_release_process_000_001",
-            "travel_expense_policy_000_002",
-            "data_engineering_standards_000_002",
-            "engineering_onboarding_000_000",
-            "ml_platform_standards_000_000",
-            "incident_response_runbook_000_000"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 2.837287
-        },
-        {
-          "id": "q012",
-          "question_type": "factual",
-          "n_relevant": 1,
-          "retrieved": [
-            "compensation_and_benefits_001_002",
-            "data_engineering_standards_000_000",
-            "model_governance_policy_000_001",
-            "employee_handbook_001_002",
-            "compensation_and_benefits_001_001",
-            "finance_procurement_policy_002_003",
-            "hr_recruitment_process_000_000",
-            "it_service_desk_guide_000_003",
-            "hr_recruitment_process_000_001",
-            "contractor_engagement_policy_000_000"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 2.05002
-        },
-        {
-          "id": "q013",
-          "question_type": "factual",
-          "n_relevant": 1,
-          "retrieved": [
-            "code_of_conduct_000_001",
-            "incident_response_runbook_000_000",
-            "employee_handbook_003_007",
-            "engineering_onboarding_000_002",
-            "travel_expense_policy_000_002",
-            "compensation_and_benefits_002_003",
-            "travel_expense_policy_000_001",
-            "finance_procurement_policy_002_003",
-            "finance_procurement_policy_001_000",
-            "engineering_onboarding_000_003"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 2.734287
-        },
-        {
-          "id": "q014",
-          "question_type": "factual",
-          "n_relevant": 1,
-          "retrieved": [
-            "ml_platform_standards_000_000",
-            "model_governance_policy_000_000",
-            "data_retention_schedule_000_000",
-            "information_security_policy_000_001",
-            "employee_handbook_003_006",
-            "contractor_engagement_policy_000_001",
-            "data_retention_schedule_000_001",
-            "model_governance_policy_000_002",
-            "information_security_policy_000_005",
-            "information_security_policy_000_003"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 3.5397
-        },
-        {
-          "id": "q015",
-          "question_type": "paraphrased",
-          "n_relevant": 1,
-          "retrieved": [
-            "employee_handbook_002_003",
-            "engineering_onboarding_000_001",
-            "customer_support_sla_000_003",
-            "contractor_engagement_policy_000_002",
-            "finance_procurement_policy_002_003",
-            "finance_procurement_policy_001_000",
-            "remote_work_policy_000_002",
-            "compensation_and_benefits_001_000",
-            "compensation_and_benefits_001_002",
-            "incident_response_runbook_000_000"
-          ],
-          "first_hit_rank": null,
-          "top_score": 0.772015
-        },
-        {
-          "id": "q016",
-          "question_type": "paraphrased",
-          "n_relevant": 1,
-          "retrieved": [
-            "employee_handbook_002_005",
-            "employee_handbook_001_002",
-            "model_governance_policy_000_002",
-            "contractor_engagement_policy_000_000",
-            "contractor_engagement_policy_000_001",
-            "hr_recruitment_process_000_002",
-            "employee_handbook_001_001",
-            "product_release_process_000_001",
-            "ml_platform_standards_000_002",
-            "travel_expense_policy_000_002"
-          ],
-          "first_hit_rank": null,
-          "top_score": 1.515535
-        },
-        {
-          "id": "q017",
-          "question_type": "paraphrased",
-          "n_relevant": 1,
-          "retrieved": [
-            "information_security_policy_000_001",
-            "employee_handbook_001_000",
-            "product_release_process_000_001",
-            "compensation_and_benefits_001_000",
-            "information_security_policy_000_002",
-            "employee_handbook_003_006",
-            "remote_work_policy_000_000",
-            "code_of_conduct_000_002",
-            "it_service_desk_guide_000_000",
-            "compensation_and_benefits_001_001"
-          ],
-          "first_hit_rank": null,
-          "top_score": 0.838504
-        },
-        {
-          "id": "q018",
-          "question_type": "paraphrased",
-          "n_relevant": 1,
-          "retrieved": [
-            "travel_expense_policy_000_001",
-            "product_release_process_000_000",
-            "compensation_and_benefits_001_000",
-            "engineering_onboarding_000_002",
-            "engineering_onboarding_000_003",
-            "employee_handbook_002_003",
-            "finance_procurement_policy_002_003",
-            "business_continuity_plan_000_000",
-            "business_continuity_plan_000_001",
-            "remote_work_policy_000_001"
-          ],
-          "first_hit_rank": null,
-          "top_score": 0.800156
-        },
-        {
-          "id": "q019",
-          "question_type": "paraphrased",
-          "n_relevant": 1,
-          "retrieved": [
-            "remote_work_policy_000_002",
-            "data_retention_schedule_000_000",
-            "office_facilities_guide_000_002",
-            "employee_handbook_003_006",
-            "ml_platform_standards_000_000",
-            "compensation_and_benefits_001_001",
-            "compensation_and_benefits_001_002",
-            "employee_handbook_003_007",
-            "travel_expense_policy_000_001",
-            "finance_procurement_policy_001_000"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 1.206587
-        },
-        {
-          "id": "q020",
-          "question_type": "paraphrased",
-          "n_relevant": 1,
-          "retrieved": [
-            "model_governance_policy_000_000",
-            "finance_procurement_policy_001_000",
-            "employee_handbook_001_002",
-            "data_processing_agreement_000_002",
-            "it_service_desk_guide_000_002",
-            "finance_procurement_policy_001_001",
-            "vendor_risk_assessment_000_000",
-            "it_service_desk_guide_000_000",
-            "hr_recruitment_process_000_000",
-            "product_release_process_000_000"
-          ],
-          "first_hit_rank": null,
-          "top_score": 1.336669
-        },
-        {
-          "id": "q021",
-          "question_type": "paraphrased",
-          "n_relevant": 1,
-          "retrieved": [
-            "travel_expense_policy_000_001",
-            "data_retention_schedule_000_002",
-            "employee_handbook_003_006",
-            "code_of_conduct_000_002",
-            "employee_handbook_002_005",
-            "office_facilities_guide_000_000",
-            "compensation_and_benefits_001_001",
-            "hr_recruitment_process_000_002",
-            "data_retention_schedule_000_001",
-            "data_processing_agreement_000_001"
-          ],
-          "first_hit_rank": 10,
-          "top_score": 0.921804
-        },
-        {
-          "id": "q022",
-          "question_type": "paraphrased",
-          "n_relevant": 1,
-          "retrieved": [
-            "data_retention_schedule_000_000",
-            "finance_procurement_policy_001_000",
-            "code_of_conduct_000_002",
-            "engineering_onboarding_000_003",
-            "travel_expense_policy_000_001",
-            "information_security_policy_000_001",
-            "employee_handbook_002_003",
-            "finance_procurement_policy_002_003",
-            "employee_handbook_003_006",
-            "it_service_desk_guide_000_000"
-          ],
-          "first_hit_rank": null,
-          "top_score": 1.199182
-        },
-        {
-          "id": "q023",
-          "question_type": "paraphrased",
-          "n_relevant": 1,
-          "retrieved": [
-            "customer_support_sla_000_000",
-            "data_engineering_standards_000_000",
-            "remote_work_policy_000_000",
-            "incident_response_runbook_000_000",
-            "data_engineering_standards_000_002",
-            "engineering_onboarding_000_003",
-            "business_continuity_plan_000_000",
-            "business_continuity_plan_000_001",
-            "product_release_process_000_001",
-            "ml_platform_standards_000_000"
-          ],
-          "first_hit_rank": 7,
-          "top_score": 0.935398
-        },
-        {
-          "id": "q024",
-          "question_type": "keyword",
-          "n_relevant": 1,
-          "retrieved": [
-            "employee_handbook_001_000",
-            "model_governance_policy_000_002",
-            "engineering_onboarding_000_003",
-            "compensation_and_benefits_001_001",
-            "product_release_process_000_000",
-            "compensation_and_benefits_001_000",
-            "ml_platform_standards_000_000",
-            "customer_support_sla_000_000",
-            "data_engineering_standards_000_000",
-            "incident_response_runbook_000_001"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 2.800734
-        },
-        {
-          "id": "q025",
-          "question_type": "keyword",
-          "n_relevant": 1,
-          "retrieved": [
-            "travel_expense_policy_000_000",
-            "finance_procurement_policy_001_000",
-            "employee_handbook_002_003",
-            "compensation_and_benefits_001_002",
-            "data_engineering_standards_000_000",
-            "ml_platform_standards_000_000",
-            "finance_procurement_policy_002_003",
-            "employee_handbook_003_006",
-            "remote_work_policy_000_001",
-            "contractor_engagement_policy_000_000"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 2.465185
-        },
-        {
-          "id": "q026",
-          "question_type": "keyword",
-          "n_relevant": 1,
-          "retrieved": [
-            "information_security_policy_000_000",
-            "remote_work_policy_000_000",
-            "code_of_conduct_000_000",
-            "travel_expense_policy_000_000",
-            "compensation_and_benefits_001_000",
-            "finance_procurement_policy_001_000",
-            "vendor_risk_assessment_000_000",
-            "data_engineering_standards_000_000",
-            "ml_platform_standards_000_000",
-            "data_processing_agreement_000_000"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 2.980715
-        },
-        {
-          "id": "q027",
-          "question_type": "keyword",
-          "n_relevant": 1,
-          "retrieved": [
-            "vendor_risk_assessment_000_000",
-            "employee_handbook_001_002",
-            "finance_procurement_policy_001_000",
-            "product_release_process_000_000",
-            "code_of_conduct_000_000",
-            "data_engineering_standards_000_000",
-            "information_security_policy_000_000",
-            "data_processing_agreement_000_000",
-            "remote_work_policy_000_000",
-            "ml_platform_standards_000_000"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 3.200254
-        },
-        {
-          "id": "q028",
-          "question_type": "keyword",
-          "n_relevant": 1,
-          "retrieved": [
-            "data_engineering_standards_000_000",
-            "code_of_conduct_000_000",
-            "incident_response_runbook_000_000",
-            "incident_response_runbook_000_001",
-            "business_continuity_plan_000_001",
-            "travel_expense_policy_000_000",
-            "finance_procurement_policy_001_000",
-            "product_release_process_000_000",
-            "model_governance_policy_000_002",
-            "data_retention_schedule_000_001"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 2.771615
-        },
-        {
-          "id": "q029",
-          "question_type": "keyword",
-          "n_relevant": 1,
-          "retrieved": [
-            "business_continuity_plan_000_000",
-            "information_security_policy_000_005",
-            "it_service_desk_guide_000_000",
-            "incident_response_runbook_000_000",
-            "ml_platform_standards_000_000",
-            "hr_recruitment_process_000_000",
-            "data_retention_schedule_000_000",
-            "product_release_process_000_000",
-            "finance_procurement_policy_001_000",
-            "vendor_risk_assessment_000_000"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 2.320233
-        },
-        {
-          "id": "q030",
-          "question_type": "keyword",
-          "n_relevant": 1,
-          "retrieved": [
-            "code_of_conduct_000_000",
-            "travel_expense_policy_000_000",
-            "product_release_process_000_000",
-            "data_engineering_standards_000_000",
-            "ml_platform_standards_000_000",
-            "compensation_and_benefits_001_000",
-            "finance_procurement_policy_001_000",
-            "customer_support_sla_000_000",
-            "incident_response_runbook_000_001",
-            "hr_recruitment_process_000_000"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 3.011338
-        },
-        {
-          "id": "q031",
-          "question_type": "terminology",
-          "n_relevant": 1,
-          "retrieved": [
-            "vendor_risk_assessment_000_000",
-            "vendor_risk_assessment_000_001",
-            "model_governance_policy_000_002",
-            "model_governance_policy_000_000",
-            "model_governance_policy_000_001",
-            "information_security_policy_000_003",
-            "data_engineering_standards_000_000",
-            "data_processing_agreement_000_001",
-            "information_security_policy_000_005",
-            "engineering_onboarding_000_001"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 3.369578
-        },
-        {
-          "id": "q032",
-          "question_type": "terminology",
-          "n_relevant": 1,
-          "retrieved": [
-            "incident_response_runbook_000_000",
-            "incident_response_runbook_000_001",
-            "incident_response_runbook_000_002",
-            "information_security_policy_000_002",
-            "business_continuity_plan_000_001",
-            "product_release_process_000_001",
-            "it_service_desk_guide_000_002",
-            "information_security_policy_000_000",
-            "product_release_process_000_000",
-            "data_processing_agreement_000_001"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 1.796971
-        },
-        {
-          "id": "q033",
-          "question_type": "terminology",
-          "n_relevant": 1,
-          "retrieved": [
-            "engineering_onboarding_000_003",
-            "ml_platform_standards_000_002",
-            "model_governance_policy_000_002",
-            "ml_platform_standards_000_000",
-            "product_release_process_000_001",
-            "customer_support_sla_000_000",
-            "employee_handbook_002_003",
-            "finance_procurement_policy_002_003",
-            "contractor_engagement_policy_000_000",
-            "employee_handbook_003_006"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 1.468668
-        },
-        {
-          "id": "q034",
-          "question_type": "terminology",
-          "n_relevant": 1,
-          "retrieved": [
-            "contractor_engagement_policy_000_002",
-            "information_security_policy_000_004",
-            "information_security_policy_000_003",
-            "finance_procurement_policy_001_001",
-            "information_security_policy_000_001",
-            "model_governance_policy_000_002",
-            "information_security_policy_000_005",
-            "data_retention_schedule_000_000",
-            "data_processing_agreement_000_001",
-            "data_processing_agreement_000_000"
-          ],
-          "first_hit_rank": 5,
-          "top_score": 2.10436
-        },
-        {
-          "id": "q035",
-          "question_type": "terminology",
-          "n_relevant": 1,
-          "retrieved": [
-            "data_engineering_standards_000_000",
-            "data_engineering_standards_000_002",
-            "vendor_risk_assessment_000_000",
-            "data_engineering_standards_000_001",
-            "model_governance_policy_000_000",
-            "vendor_risk_assessment_000_001",
-            "engineering_onboarding_000_002",
-            "model_governance_policy_000_002",
-            "ml_platform_standards_000_001",
-            "product_release_process_000_001"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 2.468947
-        },
-        {
-          "id": "q036",
-          "question_type": "terminology",
-          "n_relevant": 1,
-          "retrieved": [
-            "ml_platform_standards_000_000",
-            "model_governance_policy_000_002",
-            "model_governance_policy_000_000",
-            "vendor_risk_assessment_000_001",
-            "model_governance_policy_000_001",
-            "vendor_risk_assessment_000_000",
-            "remote_work_policy_000_000",
-            "travel_expense_policy_000_000",
-            "data_engineering_standards_000_000",
-            "ml_platform_standards_000_001"
-          ],
-          "first_hit_rank": 3,
-          "top_score": 2.189191
-        },
-        {
-          "id": "q037",
-          "question_type": "multi_step",
-          "n_relevant": 2,
-          "retrieved": [
-            "employee_handbook_002_003",
-            "remote_work_policy_000_001",
-            "contractor_engagement_policy_000_001",
-            "office_facilities_guide_000_002",
-            "code_of_conduct_000_000",
-            "remote_work_policy_000_002",
-            "employee_handbook_001_001",
-            "engineering_onboarding_000_000",
-            "remote_work_policy_000_000",
-            "hr_recruitment_process_000_000"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 1.468081
-        },
-        {
-          "id": "q038",
-          "question_type": "multi_step",
-          "n_relevant": 2,
-          "retrieved": [
-            "it_service_desk_guide_000_001",
-            "customer_support_sla_000_001",
-            "engineering_onboarding_000_001",
-            "data_engineering_standards_000_000",
-            "it_service_desk_guide_000_000",
-            "remote_work_policy_000_000",
-            "customer_support_sla_000_000",
-            "hr_recruitment_process_000_002",
-            "incident_response_runbook_000_000",
-            "compensation_and_benefits_001_002"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 2.324776
-        },
-        {
-          "id": "q039",
-          "question_type": "multi_step",
-          "n_relevant": 3,
-          "retrieved": [
-            "model_governance_policy_000_002",
-            "ml_platform_standards_000_002",
-            "engineering_onboarding_000_003",
-            "information_security_policy_000_005",
-            "contractor_engagement_policy_000_001",
-            "employee_handbook_001_002",
-            "engineering_onboarding_000_002",
-            "data_processing_agreement_000_001",
-            "data_processing_agreement_000_000",
-            "ml_platform_standards_000_000"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 1.8986
-        },
-        {
-          "id": "q040",
-          "question_type": "multi_step",
-          "n_relevant": 2,
-          "retrieved": [
-            "data_retention_schedule_000_000",
-            "data_retention_schedule_000_001",
-            "information_security_policy_000_003",
-            "data_engineering_standards_000_001",
-            "engineering_onboarding_000_003",
-            "incident_response_runbook_000_000",
-            "product_release_process_000_000",
-            "model_governance_policy_000_001",
-            "employee_handbook_002_005",
-            "ml_platform_standards_000_000"
-          ],
-          "first_hit_rank": 2,
-          "top_score": 1.861042
-        },
-        {
-          "id": "q041",
-          "question_type": "multi_step",
-          "n_relevant": 2,
-          "retrieved": [
-            "product_release_process_000_000",
-            "data_engineering_standards_000_001",
-            "product_release_process_000_002",
-            "ml_platform_standards_000_001",
-            "product_release_process_000_001",
-            "information_security_policy_000_004",
-            "contractor_engagement_policy_000_002",
-            "engineering_onboarding_000_002",
-            "engineering_onboarding_000_001",
-            "compensation_and_benefits_001_001"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 1.76858
-        },
-        {
-          "id": "q042",
-          "question_type": "multi_step",
-          "n_relevant": 3,
-          "retrieved": [
-            "employee_handbook_002_005",
-            "hr_recruitment_process_000_002",
-            "compensation_and_benefits_002_003",
-            "employee_handbook_003_006",
-            "engineering_onboarding_000_003",
-            "compensation_and_benefits_001_002",
-            "employee_handbook_002_003",
-            "finance_procurement_policy_002_003",
-            "finance_procurement_policy_001_000",
-            "employee_handbook_001_001"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 1.77095
-        },
-        {
-          "id": "q043",
-          "question_type": "multi_step",
-          "n_relevant": 2,
-          "retrieved": [
-            "incident_response_runbook_000_001",
-            "incident_response_runbook_000_000",
-            "information_security_policy_000_002",
-            "vendor_risk_assessment_000_000",
-            "customer_support_sla_000_000",
-            "data_processing_agreement_000_000",
-            "information_security_policy_000_001",
-            "model_governance_policy_000_000",
-            "it_service_desk_guide_000_000",
-            "it_service_desk_guide_000_001"
-          ],
-          "first_hit_rank": 1,
-          "top_score": 2.099001
-        },
-        {
-          "id": "q044",
-          "question_type": "unanswerable",
-          "n_relevant": 0,
-          "retrieved": [
-            "compensation_and_benefits_001_002",
-            "employee_handbook_003_006",
-            "remote_work_policy_000_001",
-            "hr_recruitment_process_000_001",
-            "contractor_engagement_policy_000_000",
-            "travel_expense_policy_000_002",
-            "finance_procurement_policy_002_003",
-            "vendor_risk_assessment_000_000",
-            "compensation_and_benefits_001_001",
-            "employee_handbook_001_000"
-          ],
-          "first_hit_rank": null,
-          "top_score": 1.022763
-        },
-        {
-          "id": "q045",
-          "question_type": "unanswerable",
-          "n_relevant": 0,
-          "retrieved": [
-            "office_facilities_guide_000_002",
-            "travel_expense_policy_000_001",
-            "travel_expense_policy_000_002",
-            "finance_procurement_policy_002_003",
-            "employee_handbook_003_006",
-            "contractor_engagement_policy_000_000",
-            "it_service_desk_guide_000_000",
-            "product_release_process_000_000",
-            "compensation_and_benefits_001_000",
-            "office_facilities_guide_000_000"
-          ],
-          "first_hit_rank": null,
-          "top_score": 1.624051
-        },
-        {
-          "id": "q046",
-          "question_type": "unanswerable",
-          "n_relevant": 0,
-          "retrieved": [
-            "incident_response_runbook_000_000",
-            "contractor_engagement_policy_000_000",
-            "information_security_policy_000_000",
-            "data_processing_agreement_000_000",
-            "contractor_engagement_policy_000_002",
-            "code_of_conduct_000_000",
-            "employee_handbook_001_000",
-            "employee_handbook_003_007",
-            "data_processing_agreement_000_001",
-            "compensation_and_benefits_001_000"
-          ],
-          "first_hit_rank": null,
-          "top_score": 1.554219
-        },
-        {
-          "id": "q047",
-          "question_type": "unanswerable",
-          "n_relevant": 0,
-          "retrieved": [
-            "information_security_policy_000_001",
-            "model_governance_policy_000_002",
-            "engineering_onboarding_000_003",
-            "product_release_process_000_000",
-            "code_of_conduct_000_001",
-            "code_of_conduct_000_000",
-            "contractor_engagement_policy_000_000",
-            "employee_handbook_001_000",
-            "employee_handbook_002_005",
-            "business_continuity_plan_000_001"
-          ],
-          "first_hit_rank": null,
-          "top_score": 1.521283
-        },
-        {
-          "id": "q048",
-          "question_type": "unanswerable",
-          "n_relevant": 0,
-          "retrieved": [
-            "information_security_policy_000_000",
-            "finance_procurement_policy_001_000",
-            "travel_expense_policy_000_000",
-            "data_retention_schedule_000_000",
-            "hr_recruitment_process_000_001",
-            "remote_work_policy_000_000",
-            "contractor_engagement_policy_000_002",
-            "office_facilities_guide_000_000",
-            "compensation_and_benefits_001_000",
-            "data_processing_agreement_000_000"
-          ],
-          "first_hit_rank": null,
-          "top_score": 3.157892
-        },
-        {
-          "id": "q049",
-          "question_type": "unanswerable",
-          "n_relevant": 0,
-          "retrieved": [
-            "customer_support_sla_000_002",
-            "data_processing_agreement_000_002",
-            "contractor_engagement_policy_000_001",
-            "finance_procurement_policy_001_001",
-            "employee_handbook_003_006",
-            "employee_handbook_002_003",
-            "remote_work_policy_000_001",
-            "business_continuity_plan_000_000",
-            "customer_support_sla_000_000",
-            "it_service_desk_guide_000_002"
-          ],
-          "first_hit_rank": null,
-          "top_score": 1.877499
-        },
-        {
-          "id": "q050",
-          "question_type": "unanswerable",
-          "n_relevant": 0,
-          "retrieved": [
-            "data_retention_schedule_000_000",
-            "product_release_process_000_000",
-            "data_retention_schedule_000_001",
-            "employee_handbook_002_005",
-            "employee_handbook_003_006",
-            "employee_handbook_003_007",
-            "compensation_and_benefits_002_003",
-            "code_of_conduct_000_000",
-            "finance_procurement_policy_001_002",
-            "compensation_and_benefits_001_002"
-          ],
-          "first_hit_rank": null,
-          "top_score": 0.957273
-        }
-      ]
     }
   ],
   "chunk_size_ablation": [
@@ -5630,7 +4514,6 @@
           "label": "Dense only",
           "method": "dense",
           "rerank": false,
-          "second_hop": false,
           "metrics": {
             "n_scored": 43,
             "n_skipped": 7,
@@ -5656,14 +4539,13 @@
             "max_recall@10": 1.0,
             "mrr": 0.7785
           },
-          "latency_ms_mean": 11.5,
-          "latency_ms_p95": 13.03
+          "latency_ms_mean": 10.51,
+          "latency_ms_p95": 11.84
         },
         {
           "label": "BM25 only",
           "method": "sparse",
           "rerank": false,
-          "second_hop": false,
           "metrics": {
             "n_scored": 43,
             "n_skipped": 7,
@@ -5689,14 +4571,13 @@
             "max_recall@10": 1.0,
             "mrr": 0.7597
           },
-          "latency_ms_mean": 0.99,
-          "latency_ms_p95": 1.23
+          "latency_ms_mean": 0.9,
+          "latency_ms_p95": 1.05
         },
         {
           "label": "Hybrid (RRF)",
           "method": "hybrid",
           "rerank": false,
-          "second_hop": false,
           "metrics": {
             "n_scored": 43,
             "n_skipped": 7,
@@ -5722,14 +4603,13 @@
             "max_recall@10": 1.0,
             "mrr": 0.7784
           },
-          "latency_ms_mean": 11.48,
-          "latency_ms_p95": 12.33
+          "latency_ms_mean": 10.93,
+          "latency_ms_p95": 13.63
         },
         {
           "label": "Hybrid + Reranker",
           "method": "hybrid",
           "rerank": true,
-          "second_hop": false,
           "metrics": {
             "n_scored": 43,
             "n_skipped": 7,
@@ -5755,8 +4635,8 @@
             "max_recall@10": 1.0,
             "mrr": 0.7541
           },
-          "latency_ms_mean": 14.15,
-          "latency_ms_p95": 16.06
+          "latency_ms_mean": 12.48,
+          "latency_ms_p95": 15.07
         }
       ]
     },
@@ -5772,7 +4652,6 @@
           "label": "Dense only",
           "method": "dense",
           "rerank": false,
-          "second_hop": false,
           "metrics": {
             "n_scored": 43,
             "n_skipped": 7,
@@ -5798,14 +4677,13 @@
             "max_recall@10": 1.0,
             "mrr": 0.8128
           },
-          "latency_ms_mean": 10.51,
-          "latency_ms_p95": 11.52
+          "latency_ms_mean": 8.35,
+          "latency_ms_p95": 8.99
         },
         {
           "label": "BM25 only",
           "method": "sparse",
           "rerank": false,
-          "second_hop": false,
           "metrics": {
             "n_scored": 43,
             "n_skipped": 7,
@@ -5831,14 +4709,13 @@
             "max_recall@10": 1.0,
             "mrr": 0.7694
           },
-          "latency_ms_mean": 0.89,
-          "latency_ms_p95": 1.04
+          "latency_ms_mean": 0.79,
+          "latency_ms_p95": 0.89
         },
         {
           "label": "Hybrid (RRF)",
           "method": "hybrid",
           "rerank": false,
-          "second_hop": false,
           "metrics": {
             "n_scored": 43,
             "n_skipped": 7,
@@ -5864,14 +4741,13 @@
             "max_recall@10": 1.0,
             "mrr": 0.7953
           },
-          "latency_ms_mean": 10.24,
-          "latency_ms_p95": 11.95
+          "latency_ms_mean": 9.06,
+          "latency_ms_p95": 9.76
         },
         {
           "label": "Hybrid + Reranker",
           "method": "hybrid",
           "rerank": true,
-          "second_hop": false,
           "metrics": {
             "n_scored": 43,
             "n_skipped": 7,
@@ -5897,8 +4773,8 @@
             "max_recall@10": 1.0,
             "mrr": 0.7884
           },
-          "latency_ms_mean": 13.72,
-          "latency_ms_p95": 17.81
+          "latency_ms_mean": 12.02,
+          "latency_ms_p95": 12.86
         }
       ]
     },
@@ -5914,7 +4790,6 @@
           "label": "Dense only",
           "method": "dense",
           "rerank": false,
-          "second_hop": false,
           "metrics": {
             "n_scored": 43,
             "n_skipped": 7,
@@ -5940,14 +4815,13 @@
             "max_recall@10": 1.0,
             "mrr": 0.8134
           },
-          "latency_ms_mean": 8.52,
-          "latency_ms_p95": 9.4
+          "latency_ms_mean": 8.07,
+          "latency_ms_p95": 8.79
         },
         {
           "label": "BM25 only",
           "method": "sparse",
           "rerank": false,
-          "second_hop": false,
           "metrics": {
             "n_scored": 43,
             "n_skipped": 7,
@@ -5973,14 +4847,13 @@
             "max_recall@10": 1.0,
             "mrr": 0.7966
           },
-          "latency_ms_mean": 0.74,
-          "latency_ms_p95": 0.86
+          "latency_ms_mean": 0.85,
+          "latency_ms_p95": 1.1
         },
         {
           "label": "Hybrid (RRF)",
           "method": "hybrid",
           "rerank": false,
-          "second_hop": false,
           "metrics": {
             "n_scored": 43,
             "n_skipped": 7,
@@ -6006,14 +4879,13 @@
             "max_recall@10": 1.0,
             "mrr": 0.8117
           },
-          "latency_ms_mean": 9.4,
-          "latency_ms_p95": 10.61
+          "latency_ms_mean": 8.41,
+          "latency_ms_p95": 9.1
         },
         {
           "label": "Hybrid + Reranker",
           "method": "hybrid",
           "rerank": true,
-          "second_hop": false,
           "metrics": {
             "n_scored": 43,
             "n_skipped": 7,
@@ -6039,8 +4911,8 @@
             "max_recall@10": 1.0,
             "mrr": 0.7953
           },
-          "latency_ms_mean": 14.16,
-          "latency_ms_p95": 16.34
+          "latency_ms_mean": 13.41,
+          "latency_ms_p95": 14.93
         }
       ]
     }
@@ -6062,7 +4934,7 @@
       "mean_citations": 0.907,
       "over_refusal_rate": 0.3488,
       "correct_refusal_rate": 0.8571,
-      "mean_latency_ms": 15.3804
+      "mean_latency_ms": 14.5584
     },
     "per_question": [
       {
@@ -6094,7 +4966,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 23.62,
+        "latency_ms": 15.66,
         "groundedness": 0.9474,
         "answer_f1": 0.5185,
         "span_coverage": 1.0,
@@ -6133,7 +5005,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 16.18,
+        "latency_ms": 15.63,
         "groundedness": 0.9667,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -6172,7 +5044,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 14.87,
+        "latency_ms": 15.28,
         "groundedness": 0.9487,
         "answer_f1": 0.0952,
         "span_coverage": 1.0,
@@ -6190,7 +5062,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 14.19,
+        "latency_ms": 15.2,
         "groundedness": 0.0,
         "answer_f1": 0.08,
         "span_coverage": 0.0,
@@ -6219,7 +5091,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 14.79,
+        "latency_ms": 14.66,
         "groundedness": 1.0,
         "answer_f1": 1.0,
         "span_coverage": 1.0,
@@ -6248,7 +5120,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 15.65,
+        "latency_ms": 15.6,
         "groundedness": 1.0,
         "answer_f1": 0.5,
         "span_coverage": 1.0,
@@ -6277,7 +5149,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 15.58,
+        "latency_ms": 14.53,
         "groundedness": 1.0,
         "answer_f1": 0.2,
         "span_coverage": 1.0,
@@ -6306,7 +5178,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 15.56,
+        "latency_ms": 14.72,
         "groundedness": 1.0,
         "answer_f1": 0.5,
         "span_coverage": 1.0,
@@ -6335,7 +5207,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 15.98,
+        "latency_ms": 15.12,
         "groundedness": 1.0,
         "answer_f1": 0.5556,
         "span_coverage": 1.0,
@@ -6364,7 +5236,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 15.37,
+        "latency_ms": 15.17,
         "groundedness": 0.9412,
         "answer_f1": 0.4348,
         "span_coverage": 1.0,
@@ -6393,7 +5265,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 15.29,
+        "latency_ms": 14.52,
         "groundedness": 1.0,
         "answer_f1": 0.7619,
         "span_coverage": 1.0,
@@ -6422,7 +5294,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 14.67,
+        "latency_ms": 15.67,
         "groundedness": 0.96,
         "answer_f1": 0.5263,
         "span_coverage": 1.0,
@@ -6451,7 +5323,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 15.37,
+        "latency_ms": 14.28,
         "groundedness": 1.0,
         "answer_f1": 0.6667,
         "span_coverage": 1.0,
@@ -6490,7 +5362,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 14.98,
+        "latency_ms": 14.56,
         "groundedness": 0.9524,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -6508,7 +5380,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 14.07,
+        "latency_ms": 13.18,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -6526,7 +5398,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 14.98,
+        "latency_ms": 14.63,
         "groundedness": 0.0,
         "answer_f1": 0.1,
         "span_coverage": 0.0,
@@ -6544,7 +5416,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 14.72,
+        "latency_ms": 13.71,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -6562,7 +5434,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 13.56,
+        "latency_ms": 13.04,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -6580,7 +5452,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 14.24,
+        "latency_ms": 13.76,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -6598,7 +5470,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 14.72,
+        "latency_ms": 14.73,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -6616,7 +5488,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 14.11,
+        "latency_ms": 14.28,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -6634,7 +5506,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 14.2,
+        "latency_ms": 13.38,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -6652,7 +5524,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 14.28,
+        "latency_ms": 12.97,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -6681,7 +5553,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 16.01,
+        "latency_ms": 14.83,
         "groundedness": 1.0,
         "answer_f1": 0.8889,
         "span_coverage": 1.0,
@@ -6710,7 +5582,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 16.41,
+        "latency_ms": 15.92,
         "groundedness": 1.0,
         "answer_f1": 0.5455,
         "span_coverage": 1.0,
@@ -6739,7 +5611,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 16.15,
+        "latency_ms": 14.42,
         "groundedness": 1.0,
         "answer_f1": 0.2222,
         "span_coverage": 1.0,
@@ -6778,7 +5650,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 15.7,
+        "latency_ms": 15.19,
         "groundedness": 0.9545,
         "answer_f1": 0.3226,
         "span_coverage": 1.0,
@@ -6807,7 +5679,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 15.42,
+        "latency_ms": 15.38,
         "groundedness": 1.0,
         "answer_f1": 0.625,
         "span_coverage": 1.0,
@@ -6836,7 +5708,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 14.97,
+        "latency_ms": 14.65,
         "groundedness": 1.0,
         "answer_f1": 0.625,
         "span_coverage": 1.0,
@@ -6875,7 +5747,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 15.49,
+        "latency_ms": 14.01,
         "groundedness": 0.95,
         "answer_f1": 0.4828,
         "span_coverage": 1.0,
@@ -6914,7 +5786,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 15.13,
+        "latency_ms": 14.01,
         "groundedness": 1.0,
         "answer_f1": 0.3673,
         "span_coverage": 1.0,
@@ -6943,7 +5815,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 14.69,
+        "latency_ms": 13.78,
         "groundedness": 1.0,
         "answer_f1": 0.9167,
         "span_coverage": 1.0,
@@ -6961,7 +5833,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 14.41,
+        "latency_ms": 13.58,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -7010,7 +5882,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 15.88,
+        "latency_ms": 13.8,
         "groundedness": 0.9583,
         "answer_f1": 0.0714,
         "span_coverage": 0.0,
@@ -7039,7 +5911,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 16.91,
+        "latency_ms": 14.16,
         "groundedness": 1.0,
         "answer_f1": 0.087,
         "span_coverage": 0.0,
@@ -7078,7 +5950,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 14.78,
+        "latency_ms": 14.83,
         "groundedness": 1.0,
         "answer_f1": 0.3273,
         "span_coverage": 0.0,
@@ -7096,7 +5968,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 15.76,
+        "latency_ms": 14.67,
         "groundedness": 0.0,
         "answer_f1": 0.08,
         "span_coverage": 0.0,
@@ -7135,7 +6007,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 15.0,
+        "latency_ms": 15.75,
         "groundedness": 0.9583,
         "answer_f1": 0.4737,
         "span_coverage": 1.0,
@@ -7153,7 +6025,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 17.68,
+        "latency_ms": 14.99,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -7171,7 +6043,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 17.53,
+        "latency_ms": 14.74,
         "groundedness": 0.0,
         "answer_f1": 0.1,
         "span_coverage": 0.0,
@@ -7200,7 +6072,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 16.03,
+        "latency_ms": 14.54,
         "groundedness": 1.0,
         "answer_f1": 0.5405,
         "span_coverage": 0.5,
@@ -7229,7 +6101,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 16.97,
+        "latency_ms": 14.52,
         "groundedness": 1.0,
         "answer_f1": 0.2857,
         "span_coverage": 0.3333,
@@ -7247,7 +6119,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 16.34,
+        "latency_ms": 14.55,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -7265,7 +6137,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 13.88,
+        "latency_ms": 14.04,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -7283,7 +6155,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 13.87,
+        "latency_ms": 15.1,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -7301,7 +6173,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 14.86,
+        "latency_ms": 16.45,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -7319,7 +6191,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 14.17,
+        "latency_ms": 14.27,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -7358,7 +6230,7 @@
           }
         ],
         "n_contexts": 5,
-        "latency_ms": 14.22,
+        "latency_ms": 14.25,
         "groundedness": 1.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -7376,7 +6248,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 5,
-        "latency_ms": 14.85,
+        "latency_ms": 14.27,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,
@@ -7394,7 +6266,7 @@
         "is_no_answer": true,
         "citations": [],
         "n_contexts": 0,
-        "latency_ms": 14.93,
+        "latency_ms": 12.94,
         "groundedness": 0.0,
         "answer_f1": 0.0,
         "span_coverage": 0.0,

@@ -14,6 +14,16 @@ Exit codes:
     0  every number is accounted for
     1  a number could not be traced (they are printed with their file)
 
+Wall-clock figures are held to a looser standard than quality metrics, for the
+same reason ``compare_results.py`` excludes them from its reproducibility check:
+they move by tens of percent between shared runners, and a document quoting a
+timing to two decimal places would be stale the moment the benchmark ran again.
+A number in a document is treated as a timing only when the document says so —
+when a unit follows it — and it then passes if it is within ``LATENCY_TOLERANCE``
+of a timing in an artefact. The unit matters: quality metrics and sub-millisecond
+timings occupy the same numeric range, so a tolerance applied by magnitude alone
+would quietly stop checking Recall@1.
+
 Some figures legitimately do not come from an artefact: a Python version, a
 measurement explicitly labelled as historical, an example payload captured under
 an earlier default. Those live in ``KNOWN`` with the reason attached, so that
@@ -73,6 +83,19 @@ KNOWN: dict[str, str] = {
 
 NUMBER_RE = re.compile(r"\d+\.\d{2,4}")
 
+#: A number the document itself labels with a time unit: "699.95 ms",
+#: "699.95\,ms", "224.18 s", "3.7 min". Only these get the tolerance.
+TIMED_RE = re.compile(r"(\d+\.\d{2,4})\s*(?:\\,)?\s*(?:ms|s|sec|secs|seconds|min)\b")
+
+#: Artefact keys whose values are wall-clock rather than quality.
+LATENCY_KEYS = ("latency", "seconds", "_ms", "ms_")
+
+#: How far a documented timing may sit from the artefact's and still be the
+#: same measurement. Runner-to-runner variance on this project has been
+#: observed near twofold; 15% keeps a quoted figure honest without turning
+#: every re-benchmark into a documentation edit.
+LATENCY_TOLERANCE = 0.15
+
 
 def _add(value: Any, out: set[str]) -> None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -86,25 +109,33 @@ def _add(value: Any, out: set[str]) -> None:
             out.add(form)
 
 
-def _walk(node: Any, out: set[str]) -> None:
+def _walk(node: Any, out: set[str], timings: set[float], key: str = "") -> None:
     if isinstance(node, dict):
-        for value in node.values():
-            _walk(value, out)
+        for name, value in node.items():
+            _walk(value, out, timings, name)
     elif isinstance(node, list):
         for value in node:
-            _walk(value, out)
+            _walk(value, out, timings, key)
     else:
         _add(node, out)
+        if (isinstance(node, (int, float)) and not isinstance(node, bool)
+                and any(marker in key for marker in LATENCY_KEYS)):
+            timings.add(float(node))
 
 
-def artefact_values() -> set[str]:
-    """Every value in the committed artefacts, plus the deltas prose computes."""
+def artefact_values() -> tuple[set[str], set[float]]:
+    """Every value in the committed artefacts, plus the deltas prose computes.
+
+    Returns the exact values, and separately the wall-clock timings, which are
+    matched with a tolerance rather than exactly.
+    """
     values: set[str] = set()
+    timings: set[float] = set()
     payloads: dict[str, dict] = {}
     for path in sorted(EVALUATION.glob("*.json")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         payloads[path.name] = payload
-        _walk(payload, values)
+        _walk(payload, values, timings)
 
     scale = payloads.get("scale_results.json", {})
     for row in scale.get("sizes", []):
@@ -151,7 +182,13 @@ def artefact_values() -> set[str]:
                 for metric in ("recall@1", "recall@5", "mrr"):
                     values.add(
                         f"{abs(config['metrics'][metric] - sibling['metrics'][metric]):.4f}")
-    return values
+    return values, timings
+
+
+def _is_a_known_timing(number: str, timings: set[float]) -> bool:
+    value = float(number)
+    return any(abs(value - timing) <= LATENCY_TOLERANCE * max(timing, 1e-9)
+               for timing in timings)
 
 
 def main() -> int:
@@ -166,7 +203,7 @@ def main() -> int:
             print(f"  {value:<10} {reason}")
         return 0
 
-    values = artefact_values()
+    values, timings = artefact_values()
     failures = 0
     for document in DOCUMENTS:
         if not document.exists():
@@ -175,7 +212,10 @@ def main() -> int:
             continue
         text = document.read_text(encoding="utf-8")
         numbers = sorted(set(NUMBER_RE.findall(text)))
-        unexplained = [n for n in numbers if n not in values and n not in KNOWN]
+        timed = set(TIMED_RE.findall(text))
+        unexplained = [n for n in numbers
+                       if n not in values and n not in KNOWN
+                       and not (n in timed and _is_a_known_timing(n, timings))]
         label = str(document.relative_to(REPO_ROOT))
         print(f"{label:<40} {len(numbers):>4} numbers, "
               f"{len(unexplained)} unexplained")

@@ -74,15 +74,6 @@ class Settings(BaseSettings):
     rrf_dense_weight: float = 1.0
     rrf_sparse_weight: float = 1.0
 
-    # ------------------------------------------------------------ second hop
-    # Off by default: it helps one question type and costs a second retrieval
-    # on every query, and that trade is measured rather than assumed. See the
-    # corpus README's per-type table and app/retrieval/second_hop.py.
-    second_hop_enabled: bool = False
-    second_hop_feedback_chunks: int = Field(2, ge=1)
-    second_hop_terms: int = Field(8, ge=1)
-    second_hop_weight: float = Field(0.5, ge=0.0)
-
     # ------------------------------------------------------------- reranking
     rerank_enabled: bool = True
     reranker_backend: Literal["auto", "cross_encoder", "lexical", "none"] = "auto"

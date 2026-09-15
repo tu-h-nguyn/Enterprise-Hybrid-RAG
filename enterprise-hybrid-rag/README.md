@@ -170,12 +170,12 @@ Reproduce with `python scripts/benchmark.py`, or read `data/evaluation/report.md
 
 | Configuration | R@1 | R@3 | R@5 | R@10 | MRR | nDCG@5 | P@5 | mean ms | p95 ms |
 |---|---|---|---|---|---|---|---|---|---|
-| Dense only | 0.5853 | 0.8256 | 0.8953 | 0.9302 | 0.7740 | 0.7869 | 0.2186 | 16.58 | 21.26 |
-| BM25 only | 0.6434 | 0.8023 | 0.8023 | 0.8023 | 0.7597 | 0.7660 | 0.2000 | **0.78** | **0.92** |
-| Hybrid (RRF) | 0.6434 | 0.8023 | 0.8488 | **1.0000** | 0.7910 | 0.7862 | 0.2093 | 17.04 | 18.41 |
-| **Hybrid + Reranker** | **0.7946** | **0.8953** | 0.9070 | **1.0000** | **0.9085** | **0.8937** | **0.2233** | 699.95 | 781.92 |
+| Dense only | 0.5853 | 0.8256 | 0.8953 | 0.9302 | 0.7740 | 0.7869 | 0.2186 | 15.61 | 17.56 |
+| BM25 only | 0.6434 | 0.8023 | 0.8023 | 0.8023 | 0.7597 | 0.7660 | 0.2000 | **0.74** | **0.84** |
+| Hybrid (RRF) | 0.6434 | 0.8023 | 0.8488 | **1.0000** | 0.7910 | 0.7862 | 0.2093 | 15.91 | 17.04 |
+| **Hybrid + Reranker** | **0.7946** | **0.8953** | 0.9070 | **1.0000** | **0.9085** | **0.8937** | **0.2233** | 693.19 | 758.69 |
 
-Hybrid + Reranker leads every quality column except Recall@5, and costs **nearly three orders of magnitude more per query than BM25** (699.95 ms against 0.78 ms). Reranking, not retrieval, is where the request time goes.
+Hybrid + Reranker leads every quality column except Recall@5, and costs **nearly three orders of magnitude more per query than BM25** (693.19 ms against 0.74 ms). Reranking, not retrieval, is where the request time goes.
 
 Two columns say more than the headline. **BM25 recall is identical at R@3, R@5 and R@10** (0.8023): it finds the chunk in the first three results or it never finds it, which is what a lexical matcher does when the query's words are not in the text. And **both fused configurations reach 1.0000 at R@10** — everything this corpus can answer is inside ten candidates, so from there the problem is entirely ranking, which is what the reranker is for. That is also why the reranker can reach 0.7946 at R@1 without a better retriever underneath it.
 
@@ -449,7 +449,7 @@ Produced by the **extractive** backend — sentence selection, not generation. T
 | mean citations per answer | 0.8372 |
 | **over_refusal_rate** (answerable questions refused) | **0.3488** |
 | **correct_refusal_rate** (unanswerable questions refused) | **0.8571** |
-| mean latency | 698.30 ms |
+| mean latency | 691.88 ms |
 
 The gate correctly refuses **6 of 7** unanswerable questions and also refuses **15 of 43** answerable ones. Both rates are unchanged from the fallback run, which is itself informative: the gate's behaviour here is dominated by the extractive backend's exact-token matching rather than by retrieval quality, so improving the encoder did not move it. Measuring this properly needs a real LLM — point `LLM_BASE_URL` at a local Ollama server and re-run `scripts/evaluate.py --generation --judge`.
 
@@ -692,7 +692,7 @@ Stated plainly, because each one bounds how far the numbers above generalise.
    index to 8548 chunks and shows the ranking holds, but it grows it with
    generated documents; the labelled questions are still 50, and no part of this
    has been validated against a real enterprise corpus.
-4. **Reranking dominates latency** — 699.95 ms per query against 0.78 ms for
+4. **Reranking dominates latency** — 693.19 ms per query against 0.74 ms for
    BM25 alone. Any deployment has to decide whether that precision is worth
    nearly three orders of magnitude of latency, or whether to rerank only when
    the fusion margin is narrow. CI-runner timings vary about twofold between

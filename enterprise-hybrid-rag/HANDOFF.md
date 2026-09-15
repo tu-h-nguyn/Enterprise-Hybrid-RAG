@@ -32,7 +32,7 @@ directory, which is the reason this is the copy that survived.
 | 14 | `app/evaluation/experiments.py` + ablation runner | **done, runs** |
 | 15 | FastAPI app (`/health`, `/documents*`, `/query`) | done, **smoke-tested** |
 | 16 | Streamlit UI | **done, driven in a browser** |
-| 17 | Tests (`tests/unit`, `tests/integration`) | **done — 164 pass** |
+| 17 | Tests (`tests/unit`, `tests/integration`) | **done — 168 pass** |
 | 18 | Observability (JSON logs, `Stopwatch`, `QueryTrace`) | done, **asserted in tests** |
 | 19 | Dockerfile / docker-compose | **done, built and served in CI** |
 | 20 | README | **done, numbers measured on neural backends** |
@@ -265,3 +265,14 @@ the numbers into the README.
 * Two copies of this file used to exist, at the repository root and here. They
   had already drifted. If you add a second copy of anything that claims to be a
   source of truth, expect the same.
+* **Second-hop retrieval was built and then removed.** `app/retrieval/second_hop.py`
+  did pseudo-relevance feedback — expand the query with the distinctive terms of
+  the first hop's top chunks, retrieve again, fuse both hops with RRF — to close
+  the `multi_step` gap. Computing the Recall@1 ceiling showed there was no gap,
+  and the neural run then showed the feature changed *nothing*: identical R@1,
+  R@5, MRR and every per-type value, for 18 ms more per query. It was deleted
+  rather than kept behind a flag. The reranker already reaches the ceiling
+  everywhere except `paraphrased`, and for a paraphrased miss the first hop's top
+  chunks are the wrong ones, so their vocabulary points further away rather than
+  closer. If you try query expansion again, that is the thing to beat: expansion
+  from a first hop that was already wrong.
