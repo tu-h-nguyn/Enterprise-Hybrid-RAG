@@ -347,8 +347,10 @@ docker compose up --build                   # api on :8000, ui on :8501
 docker compose run --rm api python scripts/ingest.py
 ```
 
-One image, two targets. The build pre-caches the neural weights so the first
-query is not a download; where the build host cannot reach the Hugging Face hub
+One image, two targets, built in CI through Buildx with the Actions layer cache
+— plain `docker build` re-downloaded roughly 3 GB of wheels on every run, which
+made that job take between 2 and 37 minutes depending on the runner. The build
+pre-caches the neural weights so the first query is not a download; where the build host cannot reach the Hugging Face hub
 the build still succeeds and the runtime falls back, reporting it in `/health`.
 Containers run as a non-root user. **No secret is ever baked into the image** —
 keys come from the environment or a gitignored `.env`.
