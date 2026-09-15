@@ -15,8 +15,6 @@ on:
   workflow_dispatch:
   pull_request:
     branches: ["main"]
-  push:
-    branches: ["claude/**"]
 
 permissions:
   contents: write
@@ -44,7 +42,12 @@ jobs:
       LLM_PROVIDER: extractive
 
     steps:
+      # For a pull_request event, the default checkout is the merge ref in
+      # detached HEAD, and the commit-back step at the end then has no branch to
+      # push to. Check out the head branch itself.
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v6

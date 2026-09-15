@@ -143,161 +143,123 @@ those are scored separately by refusal behaviour.
 
 ### The backends that produced these numbers
 
-**This run did not use neural models.** `huggingface.co` was unreachable from the
-build environment and no LLM API key was present, so `auto` selection fell back:
+Two configurations were benchmarked, and **both are kept in the repository** because the difference between them is the most interesting result here.
 
-| Component | Configured | **Actually used** |
+| Component | Neural run *(primary)* | Offline fallback run |
 |---|---|---|
-| Embedding | `all-MiniLM-L6-v2` | **`tfidf_svd`** — TF-IDF (word 1–2 + char 3–5) → truncated SVD → L2-normalised, **dim 43** |
-| Reranker | `ms-marco-MiniLM-L-6-v2` | **`lexical`** — a feature-based scorer, **not a cross-encoder** |
-| LLM | OpenAI / Anthropic | **`extractive`** — selects supporting sentences from context, **not generative** |
+| Embedding | `all-MiniLM-L6-v2`, 384-d | `tfidf_svd` (word 1–2 + char 3–5 → SVD), 43-d |
+| Reranker | `ms-marco-MiniLM-L-6-v2` cross-encoder | `lexical` feature scorer |
+| LLM | `extractive` | `extractive` |
+| Artefact | `results.json` | `results_fallback.json` |
 
-The fallbacks are real, learned and deterministic — but the dense retriever here
-is *lexical-semantic*, not neural. **Every number below is a floor, not a
-measurement of MiniLM.** On a machine with network and a key, the same `auto`
-settings pick the neural models with no code change, and the figure most likely
-to move is the paraphrased row. `results.json` and `report.md` both record the
-backend manifest so a fallback run can never be mistaken for a neural one.
+The neural run is produced by `.github/workflows/benchmark.yml` on a GitHub runner, which can reach the model hub — the development sandbox could not, which is why the fallback run exists at all. **No Hugging Face token is involved**: both models are public.
 
-Measured on Python 3.11.15, Linux x86-64, 22 documents / 44 chunks at
-`chunk_size_tokens=500`, `rrf_k=60`, `dense_top_k = sparse_top_k = 20`.
+The workflow **pins** the neural backends instead of using `auto`, and asserts a 384-dimension `sentence_transformers` embedder in the index manifest *before* measuring. Under `auto`, an unreachable hub would fall back silently and publish fallback numbers under a workflow named "neural" — precisely the failure this project is built to avoid.
+
+The LLM stays `extractive` in both runs, because CI has no API key. **Generation metrics therefore describe sentence selection, not a generative model**, in both columns.
+
+Measured on Python 3.11, Linux x86-64, 22 documents / 44 chunks at `chunk_size_tokens=500`, `rrf_k=60`, `dense_top_k = sparse_top_k = 20`.
 
 ---
 
 ## Results
 
-Reproduce with `python scripts/benchmark.py`.
+Reproduce with `python scripts/benchmark.py`, or read `data/evaluation/report.md`.
 
-### Retrieval comparison
+### Retrieval comparison — neural backends
 
 | Configuration | R@1 | R@3 | R@5 | R@10 | MRR | nDCG@5 | P@5 | mean ms | p95 ms |
 |---|---|---|---|---|---|---|---|---|---|
-| Dense only | 0.6550 | 0.8837 | 0.8837 | **0.9302** | **0.8128** | **0.8261** | 0.2186 | 8.16 | 8.17 |
-| BM25 only | 0.5969 | 0.8256 | **0.9070** | **0.9302** | 0.7694 | 0.8001 | **0.2233** | **0.62** | **0.74** |
-| Hybrid (RRF) | 0.6318 | 0.8605 | 0.8837 | 0.9070 | 0.7953 | 0.8112 | 0.2186 | 7.61 | 8.24 |
-| Hybrid + Reranker | **0.6667** | 0.8023 | 0.8488 | 0.8837 | 0.7884 | 0.7956 | 0.2093 | 10.60 | 11.31 |
+| Dense only | 0.5155 | 0.7946 | 0.8295 | 0.8527 | 0.6906 | 0.7199 | 0.2047 | 9.15 | 10.09 |
+| BM25 only | 0.5969 | 0.8256 | 0.9070 | 0.9302 | 0.7694 | 0.8001 | 0.2233 | **0.50** | **0.57** |
+| Hybrid (RRF) | 0.5620 | 0.7946 | 0.8372 | 0.8837 | 0.7362 | 0.7513 | 0.2093 | 9.41 | 11.03 |
+| **Hybrid + Reranker** | **0.7016** | **0.8953** | **0.9186** | **0.9767** | **0.8568** | **0.8610** | **0.2233** | 783.67 | 850.19 |
 
-**Recall@5 saturates at 0.85–0.91 across every configuration.** With 44 chunks,
-five of them is more than 11% of the corpus, so almost anything finds the answer
-somewhere in the top 5. **R@1 and MRR are the only discriminative columns here**,
-and results at this corpus size should be read as directional.
+Hybrid + Reranker leads every quality column, and costs **1567× more per query than BM25** (783.67 ms against 0.50 ms on a CPU runner). Reranking, not retrieval, is where the request time goes.
+
+Recall@5 is high everywhere because 5 of 44 chunks is over 11% of the corpus, so **R@1 and MRR remain the discriminative metrics** and differences of a few points across 43 scored questions are within noise.
+
+### What changed when real models replaced the fallbacks
+
+| Configuration | R@1 fallback | R@1 neural | Δ | MRR fallback | MRR neural | Δ |
+|---|---|---|---|---|---|---|
+| Dense only | 0.6550 | 0.5155 | **−0.1395** | 0.8128 | 0.6906 | **−0.1222** |
+| BM25 only | 0.5969 | 0.5969 | ±0.0000 | 0.7694 | 0.7694 | ±0.0000 |
+| Hybrid (RRF) | 0.6318 | 0.5620 | **−0.0698** | 0.7953 | 0.7362 | **−0.0591** |
+| **Hybrid + Reranker** | 0.6667 | **0.7016** | **+0.0349** | 0.7884 | **0.8568** | **+0.0684** |
+
+Three of four configurations got **worse** with a better embedder. BM25 is unchanged, as it must be — it does not use the embedder, and the identical numbers are a useful sanity check that nothing else drifted between runs.
+
+The explanation is entirely in the per-type breakdown below: the TF-IDF fallback's character n-grams matched reference codes **literally**, scoring a perfect 1.0000 on keyword questions. A sentence encoder compresses `HB-7.2` into a dense vector and loses it. What MiniLM buys instead is the only real paraphrase handling in the system.
 
 ### Recall@1 by question type — where the retrievers actually differ
 
 | Configuration | factual | keyword | multi_step | paraphrased | terminology |
 |---|---|---|---|---|---|
-| Dense only | 0.8571 | **1.0000** | **0.4524** | **0.1111** | 0.8333 |
+| Dense only | 0.8571 | 0.2857 | 0.3095 | **0.3333** | 0.5000 |
 | BM25 only | 0.8571 | 0.8571 | 0.3810 | 0.0000 | 0.8333 |
-| Hybrid (RRF) | 0.8571 | **1.0000** | **0.4524** | 0.0000 | 0.8333 |
-| Hybrid + Reranker | **1.0000** | **1.0000** | 0.3810 | **0.1111** | 0.6667 |
+| Hybrid (RRF) | 0.8571 | 0.2857 | **0.4524** | 0.2222 | 0.8333 |
+| **Hybrid + Reranker** | **0.9286** | **1.0000** | **0.4524** | 0.2222 | 0.8333 |
 
-Three findings worth stating plainly, including the ones that are inconvenient:
+### MRR by question type
 
-1. **The reranker earns its place on precision, and pays for it in recall.**
-   It takes factual R@1 from 0.8571 to a perfect 1.0000 and leads overall R@1,
-   but it is the *worst* configuration at R@5 (0.8488) and R@10 (0.8837): it
-   promotes one correct chunk to rank 1 while pushing other relevant chunks out
-   of the window. For a question with several relevant chunks this is a real
-   loss, not a rounding artefact. It also drops terminology (0.8333 → 0.6667).
+| Configuration | factual | keyword | multi_step | paraphrased | terminology |
+|---|---|---|---|---|---|
+| Dense only | 0.9286 | 0.3492 | 0.8571 | **0.4907** | 0.6389 |
+| BM25 only | 0.9107 | 0.9286 | 0.9286 | 0.2037 | 0.9167 |
+| Hybrid (RRF) | 0.9286 | 0.4762 | **1.0000** | 0.3472 | 0.8667 |
+| **Hybrid + Reranker** | **0.9643** | **1.0000** | **1.0000** | 0.4270 | **0.9167** |
 
-2. **Paraphrased questions are the failure mode: R@1 between 0.0000 and 0.1111.**
-   This is the expected, honest consequence of the TF-IDF fallback — with no
-   neural encoder there is no semantic matching, so a question sharing no
-   vocabulary with its source passage cannot be found. Dense beats BM25 here
-   (0.1111 vs 0.0000) only because character n-grams catch morphological
-   overlap. **This row is the strongest argument for the neural embedder**, and
-   is where a MiniLM run would be expected to differ most.
+Four findings, including the ones that are inconvenient:
 
-3. **Hybrid RRF does not beat dense alone in this run** (R@1 0.6318 vs 0.6550).
-   RRF pays off when its two arms fail independently. Here the "dense" arm is
-   itself lexical, so both arms make *correlated* errors and fusion has little
-   independent signal to combine — it mostly dilutes the stronger arm. This is a
-   property of the fallback, not evidence against hybrid retrieval; validating
-   the hybrid claim properly requires a genuinely semantic dense arm.
+1. **The two retrievers fail in opposite directions, and this is now measured rather than asserted.** Dense reaches 0.3333 on paraphrased questions where BM25 scores exactly 0.0000; BM25 reaches 0.8571 on keyword questions where dense manages 0.2857. Neither is better. This is the whole premise of hybrid retrieval, and it only became visible with a real encoder — under the fallback, the "dense" arm was itself lexical and scored 1.0000 on keyword questions by accident.
 
-BM25 is also **13× faster** than the dense path (0.62 ms vs 8.16 ms mean) and
-needs no model at all.
+2. **The reranker is what makes the combination pay.** Plain RRF inherits dense's keyword weakness (0.2857) because fusion cannot recover a document neither arm ranked well. The cross-encoder, reading query and chunk jointly, restores keyword to a perfect 1.0000 while keeping the semantic gain — and unlike in the fallback run it improves R@5 and R@10 as well, so it is no longer trading recall for precision.
+
+3. **Paraphrase remains the weakest retrieval story**, at 0.2222–0.3333. Better than the fallback's 0.0000–0.1111, but far from solved. Note that plain dense (0.3333) beats the full pipeline (0.2222) here: the cross-encoder is itself trained on lexical-ish relevance and sometimes demotes a semantically right chunk that shares no words with the query.
+
+4. **`multi_step` is the weakest answerable category overall** (0.4524). These need evidence from two or more documents, and nothing in this pipeline decomposes a question or retrieves iteratively. That is the honest next problem.
 
 ### Chunk-size ablation
 
-The corpus is re-ingested and both indexes rebuilt at each size, with ground
-truth re-resolved against the new chunks. Overlap is held at 20% so the
-comparison isolates chunk size.
+The corpus is re-ingested and both indexes rebuilt at each size, with ground truth re-resolved against the new chunks. Overlap is held at 20% so the comparison isolates chunk size. With a fixed 384-dimension encoder this comparison is finally clean — in the fallback run the embedding dimension was capped by corpus size and confounded it.
 
-| Chunk size | Chunks | Mean tokens | Embed dim | Configuration | R@1 | R@5 | MRR | nDCG@5 |
-|---|---|---|---|---|---|---|---|---|
-| **256** | 77 | 192.6 | 76 | Dense only | 0.6550 | 0.8023 | 0.7785 | 0.7746 |
-| | | | | BM25 only | 0.6434 | 0.8023 | 0.7597 | 0.7660 |
-| | | | | Hybrid (RRF) | 0.6550 | 0.8023 | 0.7784 | 0.7727 |
-| | | | | Hybrid + Reranker | 0.6434 | 0.7791 | 0.7541 | 0.7468 |
-| **500** | 44 | 337.4 | 43 | Dense only | 0.6550 | 0.8837 | 0.8128 | 0.8261 |
-| | | | | BM25 only | 0.5969 | 0.9070 | 0.7694 | 0.8001 |
-| | | | | Hybrid (RRF) | 0.6318 | 0.8837 | 0.7953 | 0.8112 |
-| | | | | Hybrid + Reranker | **0.6667** | 0.8488 | 0.7884 | 0.7956 |
-| **800** | 25 | 594.2 | 24 | Dense only | 0.6550 | **0.9070** | **0.8134** | **0.8351** |
-| | | | | BM25 only | 0.6318 | 0.8837 | 0.7966 | 0.8090 |
-| | | | | Hybrid (RRF) | 0.6550 | 0.8837 | 0.8117 | 0.8243 |
-| | | | | Hybrid + Reranker | 0.6550 | 0.8721 | 0.7953 | 0.8064 |
+| Chunk size | Chunks | Mean tokens | Configuration | R@1 | R@5 | MRR | nDCG@5 |
+|---|---|---|---|---|---|---|---|
+| **256** | 77 | 192.6 | Dense only | 0.5853 | 0.8953 | 0.7740 | 0.7869 |
+| | | | BM25 only | 0.6434 | 0.8023 | 0.7597 | 0.7660 |
+| | | | Hybrid (RRF) | 0.6434 | 0.8488 | 0.7910 | 0.7862 |
+| | | | **Hybrid + Reranker** | **0.7946** | 0.9070 | **0.9085** | **0.8937** |
+| **500** *(default)* | 44 | 337.4 | Dense only | 0.5155 | 0.8295 | 0.6906 | 0.7199 |
+| | | | BM25 only | 0.5969 | 0.9070 | 0.7694 | 0.8001 |
+| | | | Hybrid (RRF) | 0.5620 | 0.8372 | 0.7362 | 0.7513 |
+| | | | **Hybrid + Reranker** | 0.7016 | 0.9186 | 0.8568 | 0.8610 |
+| **800** | 25 | 594.2 | Dense only | 0.5775 | 0.7791 | 0.7225 | 0.7196 |
+| | | | BM25 only | 0.6318 | 0.8837 | 0.7966 | 0.8090 |
+| | | | Hybrid (RRF) | 0.6318 | 0.8527 | 0.7870 | 0.7850 |
+| | | | **Hybrid + Reranker** | 0.7481 | **0.9535** | 0.8747 | 0.8857 |
 
-**R@1 is remarkably flat** (0.6434–0.6667 across every size and configuration):
-at this corpus size chunk granularity barely moves whether the right chunk ranks
-first. R@5 and nDCG@5 do improve with larger chunks (dense R@5 0.8023 → 0.9070
-from 256 to 800) — but larger chunks mean fewer, longer chunks, so a "hit"
-covers more text and the metric flatters itself. **The larger caveat is that the
-embedding dimension is bounded by corpus size** (76 / 43 / 24 dims), so this
-ablation confounds chunk size with embedder capacity. It measures what it
-measures; it is not a general recommendation to use 800-token chunks.
+**The shipped default of 500 tokens is the worst of the three at R@1 and MRR for the production configuration** — 0.7016 against 0.7946 at 256, a gap of 9.3 points. Smaller chunks give the cross-encoder a tighter passage to judge and dilute each chunk's content less. 800 wins R@5 (0.9535), but a longer chunk makes a "hit" cover more text, so that metric flatters larger sizes by construction.
+
+The default has not been changed here, because one 50-question corpus is not enough evidence to re-tune a default on, and because doing so would invalidate the comparison this table exists to make. It is recorded as the first thing to revisit.
 
 ### Generation
 
-Produced by the **extractive** backend — sentence selection, not generation.
-These numbers describe that behaviour and are not LLM quality figures.
+Produced by the **extractive** backend — sentence selection, not generation. These numbers describe that behaviour and are not LLM quality figures.
 
 | Metric | Value |
 |---|---|
-| groundedness (answer bigrams present in context) | 0.6398 |
-| answer_f1 (SQuAD-style token F1 vs ground truth) | 0.3000 |
+| groundedness (answer bigrams present in context) | 0.6437 |
+| answer_f1 (SQuAD-style token F1) | 0.3138 |
 | span_coverage (labelled span appears in the answer) | 0.5078 |
 | citation_precision | 0.6512 |
 | uncited_sentence_rate | 0.3488 |
-| mean citations per answer | 0.9070 |
+| mean citations per answer | 0.8372 |
 | **over_refusal_rate** (answerable questions refused) | **0.3488** |
 | **correct_refusal_rate** (unanswerable questions refused) | **0.8571** |
-| mean latency | 11.40 ms |
+| mean latency | 798.74 ms |
 
-The abstention trade-off is visible and badly tuned in this direction: the gate
-correctly refuses **6 of 7** unanswerable questions, but also refuses **15 of 43**
-answerable ones. The over-refusals are not spread evenly — they concentrate
-almost exactly where retrieval already failed:
-
-| Question type | Over-refused | of | Share |
-|---|---|---|---|
-| paraphrased | 9 | 9 | **100%** |
-| multi_step | 4 | 7 | 57% |
-| terminology | 1 | 6 | 17% |
-| factual | 1 | 14 | 7% |
-| keyword | 0 | 7 | 0% |
-
-**Every paraphrased question is refused.** That is the same root cause as the
-paraphrased retrieval row above, propagating end to end: the lexical embedder
-never surfaces the right chunk, so the gate correctly sees a low score and
-abstains. The gate is behaving sensibly given what retrieval handed it — the
-defect is upstream, in the absence of a semantic encoder.
-
-The one unanswerable question that is *not* refused is *"Who is the Chief
-Executive Officer of Northwind Analytics?"*. It shares the tokens `chief`,
-`officer`, `northwind` and `analytics` with boilerplate scope sentences
-("...owned by the Chief Information Security Officer..."), which scores highly
-under a purely lexical reranker. The answer it returns is grounded and correctly
-cited — it simply answers a different question than the one asked. This is the
-clearest single illustration of why the lexical reranker is a fallback and not a
-cross-encoder.
-
-`min_lexical_rerank_score` is the knob, but raising it to catch that one case
-would deepen the 15 over-refusals. The threshold is tuned on one corpus, which
-is exactly the limitation noted below.
-
----
+The gate correctly refuses **6 of 7** unanswerable questions and also refuses **15 of 43** answerable ones. Both rates are unchanged from the fallback run, which is itself informative: the gate's behaviour here is dominated by the extractive backend's exact-token matching rather than by retrieval quality, so improving the encoder did not move it. Measuring this properly needs a real LLM — point `LLM_BASE_URL` at a local Ollama server and re-run `scripts/evaluate.py --generation --judge`.
 
 ## Example
 
@@ -309,25 +271,27 @@ curl -X POST http://localhost:8000/query \
 
 ```json
 {
-  "answer": "Employees are entitled to 22 days of paid annual leave per calendar year, in addition to public holidays observed in their country of employment [Source 1].",
+  "answer": "Employees are entitled to 22 days of paid annual leave per calendar year, in addition to public holidays observed in their country of employment [Source 2].",
   "citations": [
     {
-      "source_index": 1,
+      "source_index": 2,
       "chunk_id": "employee_handbook_001_000",
       "source": "employee_handbook.pdf",
       "page": 1,
       "section": "Introduction",
-      "score": 2.903297
+      "score": 3.308535
     }
   ],
   "metadata": {
-    "retrieval_method": "hybrid", "reranker": "lexical", "reranked": true,
-    "n_candidates": 33, "n_final_contexts": 5, "context_tokens": 2356,
-    "no_answer": false, "latency_ms": 16.89,
-    "stage_latency_ms": {"retrieval": 11.61, "rerank": 2.58, "context": 0.92, "generation": 1.59}
+    "retrieval_method": "hybrid", "reranker": "cross_encoder", "reranked": true,
+    "n_candidates": 30, "n_final_contexts": 5, "context_tokens": 2390,
+    "no_answer": false, "latency_ms": 1689.21,
+    "stage_latency_ms": {"retrieval": 20.37, "rerank": 1664.59, "context": 1.49, "generation": 2.47}
   }
 }
 ```
+
+Captured from the container in CI, where the hub is reachable and `auto` therefore selects the neural backends. Note `rerank` at 1664.59 ms of a 1689.21 ms request: the cross-encoder *is* the latency budget.
 
 A question the corpus cannot answer is refused rather than guessed:
 
@@ -447,32 +411,24 @@ CI (`.github/workflows/ci.yml`) runs two jobs on every pull request:
 
 Stated plainly, because each one bounds how far the numbers above generalise.
 
-1. **The measured numbers come from offline fallbacks, not neural models.** The
-   dense retriever was TF-IDF+SVD at 43 dimensions, the reranker was a lexical
-   scorer, and the "LLM" was an extractive sentence selector. Treat the results
-   as a floor and as evidence the pipeline works end-to-end — not as a
-   measurement of MiniLM, and never as a cross-encoder result.
-   The neural path itself is no longer untested: the Docker CI job runs with
-   `auto` on a runner that can reach the hub, and `/health` there reports
-   `sentence-transformers/all-MiniLM-L6-v2` and `cross_encoder`, answering the
-   annual-leave question correctly with the citation resolving to
-   `employee_handbook.pdf` p.1. That confirms the path *loads and works*; it is
-   a single query, not a benchmark, so **the tables above are still the
-   fallback numbers** until the suite is re-run on that configuration.
-   One observation worth carrying into any such re-run: reranking that single
-   query took **1664.59 ms** with the cross-encoder on a CPU runner, against
-   **2.9 ms** for the lexical fallback in the other CI job — roughly two orders
-   of magnitude, and the dominant cost in the request.
+1. **Retrieval is measured on real models; generation is not.** The tables above
+   use `all-MiniLM-L6-v2` and the `ms-marco-MiniLM-L-6-v2` cross-encoder. The
+   answer layer is still the extractive backend, because CI has no API key, so
+   every generation metric describes sentence selection rather than a language
+   model. Point `LLM_BASE_URL` at a local Ollama server to measure that half.
 2. **Token counts are a `chars/4` heuristic, not a real tokenizer.** Every chunk
    size and context budget in this project is therefore approximate. A real
    tokenizer would shift chunk boundaries and change the ablation.
 3. **The corpus is synthetic and small** — 22 documents, 44 chunks at the 500-token
    default. Recall@5 saturates, so R@1 and MRR are the only discriminative
    metrics, and differences of a few points across 43 scored questions are
-   within noise. Nothing here has been shown to hold at enterprise scale.
-4. **The embedding dimension is capped by corpus size** (44 chunks → 43 dims). This
-   confounds the chunk-size ablation with embedder capacity, and would disappear
-   under a fixed-width neural encoder.
+   within noise. Nothing here has been shown to hold at enterprise scale, and
+   the per-type rows rest on 6–14 questions each, which is few enough that a
+   single question moves a row by 7–17 points.
+4. **Reranking dominates latency** at 783.67 ms per query on a CPU runner, against
+   0.50 ms for BM25 alone. Any deployment has to decide whether that precision is
+   worth three orders of magnitude of latency, or whether to rerank only when the
+   fusion margin is narrow.
 5. **The no-answer threshold is tuned on one corpus** and is currently
    over-conservative: 34.9% of answerable questions are refused, including
    **every** paraphrased question. It has not been validated anywhere else and
@@ -484,6 +440,9 @@ Stated plainly, because each one bounds how far the numbers above generalise.
    generator's style. It is reported in a separate block and never merged into
    the deterministic metrics. It did not run here — the extractive backend
    cannot judge, and refuses rather than emitting meaningless scores.
+   The shipped `chunk_size_tokens=500` is also **not** the best value measured
+   (256 beats it by 9.3 points of R@1); it is left as-is because one
+   50-question corpus is thin evidence for re-tuning a default.
 7. **Deterministic generation metrics measure lexical support, not truth.** A
    fully grounded answer can score below 1.0 simply by paraphrasing.
 8. **Indexing is a full rebuild**, not an incremental upsert. Correct and fast at
@@ -497,8 +456,8 @@ Stated plainly, because each one bounds how far the numbers above generalise.
 
 ## Future work
 
-* Re-run the entire benchmark with `all-MiniLM-L6-v2` and
-  `ms-marco-MiniLM-L-6-v2` — the paraphrased row is the one to watch.
+* Measure generation against a real LLM (a local Ollama server needs no key and
+  keeps the corpus on the machine), and turn the LLM judge on.
 * Re-tune the abstention threshold against the over-refusal rate rather than
   inheriting a hand-picked constant.
 * Incremental indexing to replace the full rebuild.

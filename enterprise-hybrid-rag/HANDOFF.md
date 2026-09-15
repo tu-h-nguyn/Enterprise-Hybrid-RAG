@@ -29,7 +29,7 @@ State of the repository, and exactly what is left to do. Written for whoever
 | 17 | Tests (`tests/unit`, `tests/integration`) | **done — 101 pass** |
 | 18 | Observability (JSON logs, `Stopwatch`, `QueryTrace`) | done, **asserted in tests** |
 | 19 | Dockerfile / docker-compose | **done, built and served in CI** |
-| 20 | README | **done, numbers measured** |
+| 20 | README | **done, numbers measured on neural backends** |
 | 22 | Final verification run | **done** |
 
 Benchmark numbers now exist in `data/evaluation/results.json` and `report.md`,
@@ -46,18 +46,29 @@ that `all-MiniLM-L6-v2` and the cross-encoder load and answer correctly
 (`/health` reports both; the annual-leave question cites `employee_handbook.pdf`
 p.1). The build gap the previous session could not close is closed.
 
+`.github/workflows/benchmark.yml` now regenerates the numbers on
+`all-MiniLM-L6-v2` + `ms-marco-MiniLM-L-6-v2` on every pull request and commits
+them back. `results.json` holds that run; `results_fallback.json` keeps the
+offline run for comparison, because the difference between the two is the most
+informative result in the project.
+
 ### What a later session still needs to do
 
-1. **Re-run the whole benchmark with the neural backends.** The path is known to
-   work now, but every number in the README and `results.json` is still a
-   fallback number. The paraphrased row (R@1 0.0000–0.1111) is the one expected
-   to move most. Budget for the cost: reranking one query took 1664.59 ms with
-   the cross-encoder on a CPU runner, against 2.9 ms for the lexical fallback.
-2. **Re-tune `min_lexical_rerank_score` / `min_rerank_score` afterwards.** The
-   current gate over-refuses 15 of 43 answerable questions, but most of that is
-   a downstream symptom of lexical retrieval rather than a bad constant, so
-   tuning before the encoder swap would fit the wrong problem.
-3. **Consider a CPU-only torch install.** The image is 7.29 GB, most of it CUDA
+1. **Measure generation against a real LLM.** Retrieval is now measured on real
+   models, but the answer layer is still extractive because CI has no key. A
+   local Ollama server needs no key and keeps the corpus on the machine; that
+   also unlocks the LLM judge, which refuses to run on the extractive backend.
+2. **Revisit `chunk_size_tokens`.** 256 beats the shipped 500 by 9.3 points of
+   R@1 for the production configuration (0.7946 vs 0.7016). Not changed yet: one
+   50-question corpus is thin evidence for re-tuning a default, and changing it
+   would invalidate the ablation table that motivates the change.
+3. **Re-tune the abstention thresholds.** The gate still over-refuses 15 of 43
+   answerable questions, and the rate did not move when the encoder improved —
+   so it is dominated by the extractive backend's exact-token matching, and
+   should be re-tuned only after item 1.
+4. **`multi_step` is the weakest answerable category** (R@1 0.4524). Nothing here
+   decomposes a question or retrieves iteratively.
+5. **Consider a CPU-only torch install.** The image is 7.29 GB, most of it CUDA
    wheels nothing here uses.
 
 ---
