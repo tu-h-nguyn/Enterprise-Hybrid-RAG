@@ -5,8 +5,8 @@
 [![CI](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml)
 [![Benchmark](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
-![Tests](https://img.shields.io/badge/tests-130%20passing-brightgreen)
-![Coverage](https://img.shields.io/badge/coverage-76%25-green)
+![Tests](https://img.shields.io/badge/tests-139%20passing-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-78%25-green)
 ![Ruff](https://img.shields.io/badge/lint-ruff-261230)
 ![mypy](https://img.shields.io/badge/types-mypy%20clean-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
@@ -136,17 +136,18 @@ questions have a distractor at rank 1** under dense retrieval, and distractors h
 
 Two things this also settled, both of which had been assumptions:
 
-- **Reranking cost does not grow with the corpus.** It always reranks a fixed
-  top-k, so it stayed inside 1344.64–1411.69 ms per query across all four sizes,
-  with no trend, while dense search went from 10.80 ms to 19.14 ms for 106× the
-  documents.
+- **Reranking cost does not grow with the corpus.** It always rescores a fixed
+  top-k, so the cross-encoder never sees the corpus: it showed no trend across
+  the four sizes, sitting around 1.4 s per query throughout, while dense search
+  stayed in the tens of milliseconds and roughly doubled for 106× the documents.
 - **Approximate search is free here — with real embeddings.** Every size was run
-  against both Chroma's HNSW index and exhaustive cosine. With MiniLM the two
-  agreed on **every metric at every size** for the reranked pipeline; dense-only
-  and hybrid each diverged by one question, and only at 4658 chunks. Under the
-  offline TF-IDF fallback the same comparison loses 0.0233 R@1 to HNSW and is
-  not even reproducible run to run — so "HNSW is fine" is a fact about these
-  embeddings, not about HNSW.
+  against both Chroma's HNSW index and exhaustive cosine. With MiniLM,
+  **Recall@1 was identical for every configuration at every size**, and the
+  reranked pipeline matched on every metric; dense-only and hybrid differed only
+  from rank 3 down, by one or two questions. Under the offline TF-IDF
+  fallback the same comparison loses 0.0233 R@1 to HNSW and is not even
+  reproducible run to run — so "HNSW is fine" is a fact about these embeddings,
+  not about HNSW.
 
 Three guards make the numbers mean something, and each aborts the run rather than
 reporting: a distractor containing a labelled answer span (a correct hit scored as
@@ -253,12 +254,12 @@ pip install -r requirements-dev.txt
 
 ruff check .    # lint and import order
 mypy            # 68 source files, clean
-pytest          # 130 tests, no network and no API key
+pytest          # 139 tests, no network and no API key
 ```
 
 `mypy` runs over `app/` and `scripts/` and reports no issues, which is what
 makes "type hints everywhere" a checkable claim rather than a README assertion.
-Line coverage is **76%**, and CI fails below 73% so it cannot quietly rot. The
+Line coverage is **78%**, and CI fails below 73% so it cannot quietly rot. The
 uncovered remainder is mostly the Chroma backend (tests use the in-memory store
 by design) and the DOCX loader.
 
@@ -302,7 +303,7 @@ Two workflows run per pull request:
 | [`app/evaluation/`](enterprise-hybrid-rag/app/evaluation) | Dataset schema, resolver, metrics, experiment runner |
 | [`app/services/`](enterprise-hybrid-rag/app/services) | RAG pipeline, abstention gate, document lifecycle |
 | [`scripts/`](enterprise-hybrid-rag/scripts) | Ingest, evaluate, benchmark, corpus-scale experiment |
-| [`tests/`](enterprise-hybrid-rag/tests) | 130 unit and integration tests |
+| [`tests/`](enterprise-hybrid-rag/tests) | 139 unit and integration tests |
 
 **[Full technical write-up →](enterprise-hybrid-rag/README.md)** — evaluation methodology, why each decision was made, and the complete results.
 

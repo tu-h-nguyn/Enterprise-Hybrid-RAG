@@ -224,12 +224,17 @@ jobs:
           print("neural backends confirmed at every corpus size")
           PY
 
+      # Chroma's HNSW index is approximate and two identical runs disagree on a
+      # handful of deep-rank values, so holding it to bit equality would rewrite
+      # the artefact on every run and the check would stop meaning anything.
+      # Exhaustive search is still held to bit equality, and the drift is printed.
       - name: Compare against the committed scale numbers
         id: compare
         run: |
           if python scripts/compare_results.py \
                --baseline /tmp/baseline/scale_results.json \
-               --candidate data/evaluation/scale_results.json; then
+               --candidate data/evaluation/scale_results.json \
+               --allow-drift 'scale.chroma/'; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"

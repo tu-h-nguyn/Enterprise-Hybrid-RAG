@@ -13,8 +13,18 @@ deterministic given the same corpus, dataset and backends. Comparing only the
 latter turns a benchmark re-run into a reproducibility check: identical output
 means nothing drifted, and a difference is a real change worth committing.
 
+Some values are deterministic in principle but not in practice.
+``--allow-drift PREFIX`` names those: differences under the prefix are printed
+like any other, but do not count as a change. The one that needs it is
+``scale.chroma/`` — Chroma's HNSW index is approximate, and two identical runs
+of the corpus-scale experiment disagree on a handful of deep-rank values while
+every exhaustive-search row reproduces exactly. Without the flag the experiment
+would rewrite its own artefact on every run and the reproducibility check would
+stop meaning anything; with it, the check still holds exact search to bit
+equality and the drift stays visible in the log.
+
 Exit codes:
-    0  quality metrics identical
+    0  quality metrics identical (ignoring any allowed drift)
     1  quality metrics differ (the differences are printed)
     2  the files cannot be compared (different backends, missing file)
 """
@@ -89,6 +99,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Compare benchmark results on quality only")
     parser.add_argument("--baseline", type=Path, required=True)
     parser.add_argument("--candidate", type=Path, required=True)
+    parser.add_argument("--allow-drift", action="append", default=[], metavar="PREFIX",
+                        help="Metric-key prefix whose differences are reported but not "
+                             "counted as a change. Repeatable.")
     args = parser.parse_args()
 
     if not args.baseline.exists():
@@ -113,11 +126,24 @@ def main() -> int:
 
     left, right = flatten(quality_view(baseline)), flatten(quality_view(candidate))
     keys = sorted(set(left) | set(right))
-    changes = [(k, left.get(k), right.get(k)) for k in keys if left.get(k) != right.get(k)]
+    differing = [(k, left.get(k), right.get(k)) for k in keys if left.get(k) != right.get(k)]
+
+    allowed = [(k, a, b) for k, a, b in differing
+               if any(k.startswith(prefix) for prefix in args.allow_drift)]
+    changes = [row for row in differing if row not in allowed]
 
     print(f"\ncompared {len(keys)} quality values")
+    if allowed:
+        print(f"{len(allowed)} differed under an --allow-drift prefix "
+              f"({', '.join(args.allow_drift)}) and are not counted:\n")
+        for key, old_value, new_value in allowed[:20]:
+            print(f"  {key:<60}{old_value!s:>12}{new_value!s:>12}")
+        if len(allowed) > 20:
+            print(f"  ... and {len(allowed) - 20} more")
+        print()
     if not changes:
-        print("identical — the benchmark reproduced exactly")
+        print("identical — the benchmark reproduced exactly"
+              + (" outside the allowed drift" if allowed else ""))
         return 0
 
     print(f"{len(changes)} changed:\n")

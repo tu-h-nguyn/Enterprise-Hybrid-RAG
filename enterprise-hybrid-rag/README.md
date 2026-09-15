@@ -301,11 +301,20 @@ retrieval and hold 78% of the top 5. They compete.
 
 Each size was also run against both vector stores — Chroma's HNSW index and
 exhaustive cosine — because the difference is normally assumed rather than
-measured. With `all-MiniLM-L6-v2` the two agree on **every metric at every size**
-for the reranked pipeline; dense-only and hybrid each diverge by one question,
-and only at 4658 chunks (R@5 by 0.0232 and 0.0233, MRR by 0.0116 and 0.0060). BM25 never touches the vector
-store and reads identical everywhere, which is the control confirming nothing
-else differed between the two runs.
+measured. With `all-MiniLM-L6-v2`, **Recall@1 is identical for every
+configuration at every size**, and the reranked pipeline matches on every metric.
+Dense-only and hybrid differ only from rank 3 down, by one or two questions
+(0.02–0.05 on recall at depth). BM25 never touches the vector store and
+reads identical everywhere, which is the control confirming nothing else
+differed between the two runs.
+
+Those few HNSW values are also the only ones in the experiment that do not
+reproduce: two runs on different GitHub runners agreed on **689 of 696** quality
+values, and all seven that moved were Chroma rows — not one of them Recall@1.
+That is the finding rather than a defect, so CI encodes it:
+`compare_results.py --allow-drift 'scale.chroma/'` holds exhaustive search to
+bit equality and prints the approximate index's drift instead of quietly
+committing it.
 
 That result does not transfer. Under the offline `tfidf_svd` fallback the same
 comparison loses 0.0233 **R@1** to HNSW at both 936 and 4658 chunks, and is not
@@ -319,14 +328,19 @@ these embeddings are, not about HNSW.
 
 | | 44 chunks | 4658 chunks |
 |---|---:|---:|
-| Index build | 8.74 s | 154.99 s |
-| Dense query (exhaustive) | 10.80 ms | 19.14 ms |
-| BM25 query | 0.20 ms | 10.36 ms |
-| Hybrid + rerank query | 1390.88 ms | 1411.69 ms |
+| Index build | ~8 s | ~2.5 min |
+| Dense query (exhaustive) | ~12 ms | ~24 ms |
+| BM25 query | under 1 ms | ~12 ms |
+| Hybrid + rerank query | ~1.4 s | ~1.4 s |
+
+Rounded on purpose: these are wall-clock on a GitHub runner, and the same job on
+a different runner moves them by tens of percent. The shape is the claim; the
+exact figures for the committed run are in
+[`scale_report.md`](data/evaluation/scale_report.md).
 
 Reranking is flat because it always rescores a fixed top-k: the cross-encoder
-never sees the corpus. At 44 chunks it is 99% of query latency; at 4658 it is
-still 96%. Nothing about growing the corpus changes the thing that dominates.
+never sees the corpus. At 44 chunks it is 99% of query latency, and at 4658 it is
+still over 96%. Nothing about growing the corpus changes the thing that dominates.
 
 #### Guards
 
