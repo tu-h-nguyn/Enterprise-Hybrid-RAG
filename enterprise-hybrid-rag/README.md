@@ -640,12 +640,18 @@ Stated plainly, because each one bounds how far the numbers above generalise.
    fully grounded answer can score below 1.0 simply by paraphrasing.
 8. **Indexing is a full rebuild**, not an incremental upsert. Correct and fast at
    this size; wrong for a large corpus.
-9. **The image is large: 7.29 GB.** `requirements.txt` pulls `torch` with its
-   CUDA wheels even though nothing here uses a GPU. A CPU-only torch index
-   would cut the bulk of that, at the cost of the image no longer matching the
-   documented install. Not changed here because it trades one honest property
-   for another, but it is the first thing to look at before shipping this
-   anywhere real.
+9. **The image is large, and torch is why.** It was 7.29 GB: `torch` arrives as
+   a dependency of `sentence-transformers`, and on Linux the PyPI wheel is the
+   CUDA build, in a container with no GPU. The Dockerfile now installs the
+   `+cpu` build from PyTorch's own index — which needs no version pin, because
+   `X.Y.Z+cpu` sorts above the plain `X.Y.Z` under PEP 440 — and the documented
+   install is unchanged, since `requirements.txt` itself still names only
+   `sentence-transformers`. The earlier worry that this trades one honest
+   property for another is handled by asserting both halves in CI rather than
+   trusting them: the installed torch must report a `+cpu` version, and the api
+   image must stay under a 4 GiB ceiling. The ceiling is deliberately loose. It
+   is a regression guard against the CUDA wheels quietly coming back, not a size
+   budget; the exact size is printed by every Docker job.
 
 ## Future work
 

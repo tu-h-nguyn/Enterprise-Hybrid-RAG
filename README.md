@@ -310,7 +310,7 @@ Two workflows run per pull request:
 3. **The abstention threshold is tuned on one corpus** and over-refuses 34.9% of answerable questions.
 4. **Token counts are a `chars/4` heuristic**, not a real tokenizer, so chunk sizes and context budgets are approximate.
 5. **Reranking dominates latency** — 1416.77 ms per query against BM25's 0.72 ms, and CI-runner timings vary about twofold run to run, so only the order of magnitude is meaningful.
-6. **The image is 7.29 GB**, mostly CUDA wheels nothing here uses.
+6. **The image is large** — torch dominates it. It was 7.29 GB, because torch arrives as a dependency of sentence-transformers and the Linux wheel on PyPI is the CUDA build, for a container with no GPU. The Dockerfile now takes the `+cpu` build from PyTorch's own index, and CI asserts both halves of that: the installed torch must be a `+cpu` version, and the API image must stay under a 4 GiB ceiling. The exact size is printed by every Docker job.
 7. **Indexing is a full rebuild**, not an incremental upsert — correct at this size, wrong at scale.
 
 ---
