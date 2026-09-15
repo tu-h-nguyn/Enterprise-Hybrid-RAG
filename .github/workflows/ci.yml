@@ -71,9 +71,10 @@ jobs:
       # Hermetic: fixtures build their own index in tmp_path, so this needs no
       # network, no API key and no pre-existing index. The coverage floor sits
       # just under the current figure, so it catches a regression without
-      # becoming a target to game.
+      # becoming a target to game. It is ratcheted when real coverage rises —
+      # the LLM provider tests moved it from 70 to 73.
       - name: Run tests with coverage
-        run: pytest -q --cov=app --cov-report=term-missing --cov-fail-under=70
+        run: pytest -q --cov=app --cov-report=term-missing --cov-fail-under=73
 
       - name: Ingest the demo corpus
         run: python scripts/ingest.py --quiet

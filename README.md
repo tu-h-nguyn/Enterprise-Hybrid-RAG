@@ -5,8 +5,8 @@
 [![CI](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml)
 [![Benchmark](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
-![Tests](https://img.shields.io/badge/tests-101%20passing-brightgreen)
-![Coverage](https://img.shields.io/badge/coverage-72%25-green)
+![Tests](https://img.shields.io/badge/tests-139%20passing-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-78%25-green)
 ![Ruff](https://img.shields.io/badge/lint-ruff-261230)
 ![mypy](https://img.shields.io/badge/types-mypy%20clean-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
@@ -106,6 +106,58 @@ Re-ingested and re-indexed at each size, with ground truth re-resolved against t
 
 **The shipped default of 500 is the worst of the three for R@1 and MRR.** 256 is 9.3 points better at R@1. This is an actionable result the fallback run could not produce, because there the embedding dimension was capped by corpus size and confounded the comparison; with a fixed 384-dimension encoder the comparison is clean.
 
+### It still works when the corpus is 106× bigger
+
+44 chunks is a haybale, not a haystack: 30 of them are the answer to something, so
+top-5 covers more than a tenth of everything there is. So the questions, their answer
+spans and every retrieval setting were held fixed while the corpus grew with
+**in-domain distractor documents** — same topics, same register, same policy
+vocabulary, other fictional companies ([`scripts/make_distractor_corpus.py`](enterprise-hybrid-rag/scripts/make_distractor_corpus.py)).
+Recall@1, exhaustive search, neural backends:
+
+| Chunks | Gold chunks are… | Dense | BM25 | Hybrid | **Hybrid + Reranker** |
+|---:|---:|---:|---:|---:|---:|
+| 44 | 68.2% of the corpus | 0.5155 | 0.5969 | 0.5620 | **0.7016** |
+| 235 | 12.8% | 0.4574 | 0.5504 | 0.5039 | **0.6550** |
+| 936 | 3.2% | 0.4109 | 0.5504 | 0.4806 | **0.6318** |
+| 4658 | **0.6%** | 0.3643 | 0.5736 | 0.4457 | **0.6318** |
+| | **Δ over 106×** | **−0.1512** | −0.0233 | −0.1163 | **−0.0698** |
+
+**Dense retrieval loses 29% of its Recall@1 and the reranked pipeline loses 10%,
+while the gold chunk goes from one in 1.5 to one in 155.** Recall@5 for the full
+pipeline falls only from 0.9186 to 0.8566. At 44 chunks the reranker is worth
++0.1861 R@1 over dense alone; at 4658 chunks it is worth **+0.2675**. The reranker
+is not a few points of polish on top of retrieval — it is the part that makes
+retrieval survive a corpus.
+
+The distractors are doing real work rather than padding: at 4658 chunks **41.9% of
+questions have a distractor at rank 1** under dense retrieval, and distractors hold
+**78.1%** of the top 5. The reranked pipeline pushes those to 16.3% and 60.9%.
+
+Two things this also settled, both of which had been assumptions:
+
+- **Reranking cost does not grow with the corpus.** It always rescores a fixed
+  top-k, so the cross-encoder never sees the corpus: it showed no trend across
+  the four sizes, sitting around 1.4 s per query throughout, while dense search
+  stayed in the tens of milliseconds and roughly doubled for 106× the documents.
+- **Approximate search is free here — with real embeddings.** Every size was run
+  against both Chroma's HNSW index and exhaustive cosine. With MiniLM,
+  **Recall@1 was identical for every configuration at every size**, and the
+  reranked pipeline matched on every metric; dense-only and hybrid differed only
+  from rank 3 down, by one or two questions. Under the offline TF-IDF
+  fallback the same comparison loses 0.0233 R@1 to HNSW and is not even
+  reproducible run to run — so "HNSW is fine" is a fact about these embeddings,
+  not about HNSW.
+
+Three guards make the numbers mean something, and each aborts the run rather than
+reporting: a distractor containing a labelled answer span (a correct hit scored as
+a miss), gold chunks that move as the corpus grows (a labelling artefact read as a
+scale effect), and an embedder whose width changes with the corpus. Full table:
+[`data/evaluation/scale_report.md`](enterprise-hybrid-rag/data/evaluation/scale_report.md).
+
+> With 43 scored questions one question is 0.0233, which is why BM25 reads
+> *higher* at 4658 chunks than at 936. Read the trends, not the third decimal.
+
 ### Generation
 
 Still the **extractive** backend — sentence selection, not a generative model, because CI has no API key. These describe that behaviour.
@@ -201,29 +253,36 @@ LLM_API_KEY=ollama    # required non-empty; Ollama ignores the value
 pip install -r requirements-dev.txt
 
 ruff check .    # lint and import order
-mypy            # 66 source files, clean
-pytest          # 101 tests, under 2s, no network and no API key
+mypy            # 68 source files, clean
+pytest          # 139 tests, no network and no API key
 ```
 
 `mypy` runs over `app/` and `scripts/` and reports no issues, which is what
 makes "type hints everywhere" a checkable claim rather than a README assertion.
-Line coverage is **72%**, and CI fails below 70% so it cannot quietly rot. The
+Line coverage is **78%**, and CI fails below 73% so it cannot quietly rot. The
 uncovered remainder is mostly the Chroma backend (tests use the in-memory store
 by design) and the DOCX loader.
+
+The two network-backed LLM providers are covered without a network or a key, by
+standing up a local HTTP server that speaks the same protocol. That is what
+turns *"works with OpenAI, Anthropic or a local Ollama server"* from a claim in
+a docstring into something the suite demonstrates — including that Anthropic's
+different endpoint, headers and body shape genuinely work, which is the only
+reason a second provider is worth carrying.
 
 Unit tests cover the PDF loader against a PDF generated inside the test, chunker page/section provenance, RRF against a hand-computed example, BM25 and dense retrieval (the latter with a stub embedder and hand-placed vectors), reranker ordering, context budget and dedup, citation parsing, the gate per score scale, and the metric arithmetic. Integration tests cover ingest → index → query and the API via `TestClient`.
 
 Two workflows run per pull request:
 
-- **CI** — `ruff`, `mypy`, tests with a 70% coverage floor, ingest, a **blocking evaluation-label audit**, and an API smoke test, on pinned offline backends so the job is deterministic. The audit is a real gate: it was verified by deliberately corrupting an answer span and confirming a non-zero exit.
+- **CI** — `ruff`, `mypy`, tests with a 73% coverage floor, ingest, a **blocking evaluation-label audit**, and an API smoke test, on pinned offline backends so the job is deterministic. The audit is a real gate: it was verified by deliberately corrupting an answer span and confirming a non-zero exit.
 - **Docker** — builds both image targets with the Actions layer cache, ingests inside the container, then starts it and queries the live API. Without the cache this job re-downloaded ~3 GB of wheels every run and took anywhere from 2 to 37 minutes.
-- **Benchmark** — the full suite on the neural backends. It compares what it just measured against the committed numbers on **quality metrics only**, since latency is wall-clock and moves every run. Identical output means the benchmark reproduced; it commits regenerated results only when a quality metric actually changed. Two independent runs on different runners agreed on all **698** compared values.
+- **Benchmark** — the full suite on the neural backends. It compares what it just measured against the committed numbers on **quality metrics only**, since latency is wall-clock and moves every run. Identical output means the benchmark reproduced; it commits regenerated results only when a quality metric actually changed. Three independent runs on different runners agreed on all **698** compared values. The corpus-scale experiment runs as a second job in the same workflow and is held to the same standard, including an assertion that the embedder held at 384 dimensions at every corpus size before it is allowed to publish anything.
 
 ---
 
 ## Limitations
 
-1. **The corpus is synthetic and small** — 22 documents, 44 chunks. Recall@5 saturates, so R@1 and MRR are the discriminative metrics, and with 43 scored questions a few points is noise. Treat every comparison as directional.
+1. **The corpus is synthetic**, and the labelled part of it is small — 22 documents, 44 chunks, 43 scored questions, where one question is 0.0233. The scale experiment above grows it to 4658 chunks, but the added documents are generated from templates: they are hard negatives by construction, and a real corpus that size would hold both easier negatives and harder ones (near-duplicate revisions of the same policy). Treat every comparison as directional.
 2. **Generation is not measured with a real LLM.** CI has no key, so those metrics describe sentence selection.
 3. **The abstention threshold is tuned on one corpus** and over-refuses 34.9% of answerable questions.
 4. **Token counts are a `chars/4` heuristic**, not a real tokenizer, so chunk sizes and context budgets are approximate.
@@ -243,7 +302,8 @@ Two workflows run per pull request:
 | [`app/generation/`](enterprise-hybrid-rag/app/generation) | Providers, prompts, citation resolution |
 | [`app/evaluation/`](enterprise-hybrid-rag/app/evaluation) | Dataset schema, resolver, metrics, experiment runner |
 | [`app/services/`](enterprise-hybrid-rag/app/services) | RAG pipeline, abstention gate, document lifecycle |
-| [`tests/`](enterprise-hybrid-rag/tests) | 101 unit and integration tests |
+| [`scripts/`](enterprise-hybrid-rag/scripts) | Ingest, evaluate, benchmark, corpus-scale experiment |
+| [`tests/`](enterprise-hybrid-rag/tests) | 139 unit and integration tests |
 
 **[Full technical write-up →](enterprise-hybrid-rag/README.md)** — evaluation methodology, why each decision was made, and the complete results.
 

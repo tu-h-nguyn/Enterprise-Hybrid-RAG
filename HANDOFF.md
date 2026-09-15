@@ -178,6 +178,16 @@ manifest) and `data/evaluation/report.md` (human-readable table).
 Thin CLIs over `RetrievalEvaluator` / `GenerationEvaluator` / `experiments.py`.
 `--dataset`, `--top-k`, `--out`. Print the comparison table to stdout.
 
+### 5.3a `scripts/scale_experiment.py`, `scripts/make_distractor_corpus.py`
+Added after the phases above. Answers "does this hold on a bigger corpus?" by
+holding the 50 labelled questions fixed and growing the haystack with in-domain
+distractor documents (same topics and register, other fictional companies),
+run at every size against both the exact (`numpy`) and approximate (`chroma`
+HNSW) vector store. Writes `data/evaluation/scale_results.json` and
+`scale_report.md`. Aborts rather than reporting if a distractor contains a
+labelled answer span, or if the resolved gold chunks move as the corpus grows.
+The distractor corpus is deterministic in its `--seed` and is never committed.
+
 ### 5.4 `tests/` (pytest)
 Unit: PDF loader on a generated PDF; chunker page/section preservation;
 `reciprocal_rank_fusion` against a **hand-computed** example (with `k=1`,
