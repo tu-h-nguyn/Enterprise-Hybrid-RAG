@@ -14,7 +14,16 @@ WORKDIR /app
 
 # Dependencies first: this layer stays cached until requirements.txt changes.
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# torch arrives as a dependency of sentence-transformers, and on Linux the PyPI
+# wheel is the CUDA build: roughly 3 GB of wheels for a container that has no
+# GPU and never asks for one. PyTorch's own index serves `X.Y.Z+cpu`, which
+# sorts *above* the plain `X.Y.Z` on PyPI under PEP 440, so adding it as an
+# extra index is enough to select the CPU build without pinning a version that
+# would then have to be chased every time sentence-transformers moves.
+RUN pip install --no-cache-dir \
+      --extra-index-url https://download.pytorch.org/whl/cpu \
+      -r requirements.txt \
+ && python -c "import torch; print('torch', torch.__version__)"
 
 # ------------------------------------------------------------- model warmup
 # Bake the neural weights into the image so the first query is not a download,

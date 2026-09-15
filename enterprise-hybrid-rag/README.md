@@ -459,6 +459,35 @@ python scripts/benchmark.py                 # + chunk ablation -> results.json, 
 `scripts/benchmark.py` builds the ablation indexes in a temporary directory, so
 the index the API is serving is never replaced by an ablation build.
 
+### A single process, for a hosted demo
+
+```bash
+streamlit run frontend/streamlit_app.py     # note: no API_URL
+```
+
+Streamlit Community Cloud and Hugging Face Spaces run one process, so there is
+nowhere to put a separate `uvicorn` for the UI to call. With `API_URL` unset,
+`frontend/embedded_api.py` starts the real ASGI app on an OS-assigned loopback
+socket in a daemon thread and waits for `/health` before the UI renders; if the
+host has no index — `data/processed` is not committed, only `data/raw` is — the
+first visitor's page load builds one, and every visitor after that finds it
+ready.
+
+The alternative was to let the UI import `RagService` and call it directly. That
+was rejected: the UI would then hold a second, parallel path into retrieval, and
+what a visitor sees would no longer be what the API serves. The port is chosen
+by binding `127.0.0.1:0` and handing the already-listening socket to uvicorn,
+rather than picking a free port and hoping it is still free a moment later.
+
+Uploading is disabled in this mode by default, because a hosted demo is one
+shared container and one visitor's document would change what the next visitor
+sees. `UI_ALLOW_UPLOAD=1` re-enables it.
+
+Five integration tests cover this path, including a fresh deployment building
+its own index and answering a question over the socket, and an assertion that
+every endpoint the UI calls exists on the app that gets embedded — so the demo
+cannot drift from the deployment the rest of this README describes.
+
 ### Docker
 
 ```bash

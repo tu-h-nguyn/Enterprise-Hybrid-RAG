@@ -5,8 +5,8 @@
 [![CI](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml)
 [![Benchmark](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
-![Tests](https://img.shields.io/badge/tests-139%20passing-brightgreen)
-![Coverage](https://img.shields.io/badge/coverage-78%25-green)
+![Tests](https://img.shields.io/badge/tests-150%20passing-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-79%25-green)
 ![Ruff](https://img.shields.io/badge/lint-ruff-261230)
 ![mypy](https://img.shields.io/badge/types-mypy%20clean-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
@@ -209,6 +209,29 @@ API_URL=http://localhost:8000 streamlit run frontend/streamlit_app.py
 docker compose up --build         # api :8000, ui :8501
 ```
 
+### Or with nothing running at all
+
+```bash
+streamlit run frontend/streamlit_app.py     # no API_URL
+```
+
+With `API_URL` unset there is no API to talk to, so the UI starts the real
+FastAPI app on a loopback socket **inside its own process** and builds the index
+from `data/raw` on the first visit. It is still HTTP, to the same endpoints:
+the transport changes, the contract does not. The UI never grows a second path
+into retrieval, so what a visitor sees is what the API serves.
+
+That is what makes a single-process host work with no configuration. To put this
+at a URL: point [Streamlit Community Cloud](https://share.streamlit.io) at this
+repository with **main file path** `enterprise-hybrid-rag/frontend/streamlit_app.py`.
+The root `requirements.txt` exists for that platform — it selects the CPU build
+of torch, because the PyPI wheel is the CUDA one and a free tier has nowhere to
+put 3 GB of it.
+
+Uploading is off by default in that mode: a hosted demo is one shared container,
+so a document one visitor adds would change what the next visitor sees. Set
+`UI_ALLOW_UPLOAD=1` to turn it back on.
+
 ### Ask it something
 
 ```bash
@@ -253,13 +276,13 @@ LLM_API_KEY=ollama    # required non-empty; Ollama ignores the value
 pip install -r requirements-dev.txt
 
 ruff check .    # lint and import order
-mypy            # 68 source files, clean
-pytest          # 139 tests, no network and no API key
+mypy            # 70 source files, clean
+pytest          # 150 tests, no network and no API key
 ```
 
-`mypy` runs over `app/` and `scripts/` and reports no issues, which is what
+`mypy` runs over `app/`, `scripts/` and `frontend/` and reports no issues, which is what
 makes "type hints everywhere" a checkable claim rather than a README assertion.
-Line coverage is **78%**, and CI fails below 73% so it cannot quietly rot. The
+Line coverage is **79%**, and CI fails below 73% so it cannot quietly rot. The
 uncovered remainder is mostly the Chroma backend (tests use the in-memory store
 by design) and the DOCX loader.
 
@@ -303,7 +326,7 @@ Two workflows run per pull request:
 | [`app/evaluation/`](enterprise-hybrid-rag/app/evaluation) | Dataset schema, resolver, metrics, experiment runner |
 | [`app/services/`](enterprise-hybrid-rag/app/services) | RAG pipeline, abstention gate, document lifecycle |
 | [`scripts/`](enterprise-hybrid-rag/scripts) | Ingest, evaluate, benchmark, corpus-scale experiment |
-| [`tests/`](enterprise-hybrid-rag/tests) | 139 unit and integration tests |
+| [`tests/`](enterprise-hybrid-rag/tests) | 150 unit and integration tests |
 
 **[Full technical write-up →](enterprise-hybrid-rag/README.md)** — evaluation methodology, why each decision was made, and the complete results.
 
