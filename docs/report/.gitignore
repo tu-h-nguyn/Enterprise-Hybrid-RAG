@@ -1,0 +1,8 @@
+# LaTeX build products. report.pdf is committed on purpose — it is a deliverable.
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
