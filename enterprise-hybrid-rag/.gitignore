@@ -1,0 +1,16 @@
+# Virtualenvs
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Rebuilt by scripts/ingest.py — Chroma DB, BM25 index, fitted embedder pickle
+data/processed/
+
+# Local configuration; never commit secrets
+.env
+.env.local

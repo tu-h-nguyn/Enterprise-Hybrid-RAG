@@ -1,0 +1,422 @@
+{
+  "name": "northwind_demo",
+  "description": "Hand-written evaluation set for the Northwind Analytics synthetic corpus (22 documents). Every answer span is a verbatim substring of data/raw, transcribed from the indexed text rather than written from memory. Question types are chosen to separate the retrievers: 'keyword' questions hinge on rare document reference codes that BM25 matches exactly, 'paraphrased' questions deliberately avoid the vocabulary of the source passage so that only a semantic match can find them, and 'multi_step' questions require evidence from two or more documents. 'unanswerable' questions are plausible but have no support anywhere in the corpus and must be refused.",
+  "questions": [
+    {
+      "id": "q001",
+      "question": "How many days of paid annual leave are employees entitled to each calendar year?",
+      "ground_truth": "22 days of paid annual leave per calendar year, in addition to public holidays observed in the employee's country of employment.",
+      "question_type": "factual",
+      "relevant_documents": ["employee_handbook.pdf"],
+      "answer_spans": ["22 days of paid annual leave per calendar year"]
+    },
+    {
+      "id": "q002",
+      "question": "What is the minimum password length required by the information security policy?",
+      "ground_truth": "Passwords must be at least 14 characters long.",
+      "question_type": "factual",
+      "relevant_documents": ["information_security_policy.docx"],
+      "answer_spans": ["Passwords must be at least 14 characters long"]
+    },
+    {
+      "id": "q003",
+      "question": "What is the first response target for a P1 support issue?",
+      "ground_truth": "30 minutes.",
+      "question_type": "factual",
+      "relevant_documents": ["customer_support_sla.md"],
+      "answer_spans": ["The first response target is 30 minutes for P1"]
+    },
+    {
+      "id": "q004",
+      "question": "What rate is paid for mileage when an employee uses a private car?",
+      "ground_truth": "0.38 euro per kilometre, with the first 20 kilometres of a journey starting at home treated as commuting and not reimbursed.",
+      "question_type": "factual",
+      "relevant_documents": ["travel_expense_policy.md"],
+      "answer_spans": ["Mileage for private cars is reimbursed at 0.38 euro per kilometre"]
+    },
+    {
+      "id": "q005",
+      "question": "Above what amount is a purchase order required for a commitment?",
+      "ground_truth": "A purchase order is required for any commitment above 1000 US dollars.",
+      "question_type": "factual",
+      "relevant_documents": ["finance_procurement_policy.pdf"],
+      "answer_spans": ["A purchase order is required for any commitment above 1000 US dollars"]
+    },
+    {
+      "id": "q006",
+      "question": "How quickly must the primary on-call engineer acknowledge a page?",
+      "ground_truth": "Within 5 minutes; otherwise it escalates to the secondary on-call engineer after 10 minutes.",
+      "question_type": "factual",
+      "relevant_documents": ["incident_response_runbook.md"],
+      "answer_spans": ["must acknowledge a page within 5 minutes"]
+    },
+    {
+      "id": "q007",
+      "question": "What monthly connectivity allowance do remote employees receive?",
+      "ground_truth": "40 euro per month, paid through payroll and treated as taxable income in most jurisdictions.",
+      "question_type": "factual",
+      "relevant_documents": ["remote_work_policy.md"],
+      "answer_spans": ["monthly connectivity allowance of 40 euro"]
+    },
+    {
+      "id": "q008",
+      "question": "During which hours are the offices open to badge holders on working days?",
+      "ground_truth": "06:00 to 22:00 on working days; access outside those hours requires approval from the office manager and is logged.",
+      "question_type": "factual",
+      "relevant_documents": ["office_facilities_guide.md"],
+      "answer_spans": ["open to badge holders from 06:00 to 22:00 on working days"]
+    },
+    {
+      "id": "q009",
+      "question": "What line coverage must new code maintain before the pipeline passes?",
+      "ground_truth": "At least 80 percent line coverage; the pipeline fails below that threshold.",
+      "question_type": "factual",
+      "relevant_documents": ["engineering_onboarding.md"],
+      "answer_spans": ["at least 80 percent line coverage"]
+    },
+    {
+      "id": "q010",
+      "question": "How long are employee personnel files retained after employment ends?",
+      "ground_truth": "7 years after the end of employment.",
+      "question_type": "factual",
+      "relevant_documents": ["data_retention_schedule.md"],
+      "answer_spans": ["Employee personnel files are retained for 7 years after the end of employment"]
+    },
+    {
+      "id": "q011",
+      "question": "On what schedule do production releases run?",
+      "ground_truth": "Twice per week, on Tuesday and Thursday at 13:00 UTC.",
+      "question_type": "factual",
+      "relevant_documents": ["product_release_process.md"],
+      "answer_spans": ["twice per week, on Tuesday and Thursday at 13:00 UTC"]
+    },
+    {
+      "id": "q012",
+      "question": "What percentage of base salary does the company contribute to the pension scheme?",
+      "ground_truth": "6 percent of base salary, plus a match of employee contributions up to a further 3 percent.",
+      "question_type": "factual",
+      "relevant_documents": ["compensation_and_benefits.pdf"],
+      "answer_spans": ["The company contributes 6 percent of base salary to a pension scheme"]
+    },
+    {
+      "id": "q013",
+      "question": "What must happen to a gift valued above 250 euro?",
+      "ground_truth": "It must be declined or donated to charity.",
+      "question_type": "factual",
+      "relevant_documents": ["code_of_conduct.docx"],
+      "answer_spans": ["Gifts above 250 euro must be declined or donated to charity"]
+    },
+    {
+      "id": "q014",
+      "question": "For how long are machine learning experiment artefacts retained?",
+      "ground_truth": "18 months; artefacts belonging to a model that reached production are retained for the life of the model plus 3 years.",
+      "question_type": "factual",
+      "relevant_documents": ["ml_platform_standards.md"],
+      "answer_spans": ["Experiment artefacts are retained for 18 months"]
+    },
+
+    {
+      "id": "q015",
+      "question": "How much fully compensated time away from work does the main carer of a newborn receive?",
+      "ground_truth": "16 weeks at full pay for the primary caregiver; the secondary caregiver receives 4 weeks at full pay.",
+      "question_type": "paraphrased",
+      "relevant_documents": ["employee_handbook.pdf"],
+      "answer_spans": ["primary caregiver is entitled to 16 weeks of parental leave at full pay"],
+      "notes": "Avoids the source vocabulary 'parental leave', 'entitled', 'primary caregiver'."
+    },
+    {
+      "id": "q016",
+      "question": "Which beverages will not be paid back on a trip?",
+      "ground_truth": "Alcohol is not reimbursable, except at client entertainment events approved in advance by a director.",
+      "question_type": "paraphrased",
+      "relevant_documents": ["travel_expense_policy.md"],
+      "answer_spans": ["Alcohol is not reimbursable"]
+    },
+    {
+      "id": "q017",
+      "question": "How soon are the credentials of somebody who leaves the organisation switched off?",
+      "ground_truth": "Accounts of departing employees are disabled within 4 hours of their final working hour and deleted after 30 days.",
+      "question_type": "paraphrased",
+      "relevant_documents": ["information_security_policy.docx"],
+      "answer_spans": ["Accounts of departing employees are disabled within 4 hours"]
+    },
+    {
+      "id": "q018",
+      "question": "What compensation does a client get when the platform is down too often?",
+      "ground_truth": "A service credit of 10, 25 or 50 percent of the monthly fee depending on how far monthly uptime fell below the commitment.",
+      "question_type": "paraphrased",
+      "relevant_documents": ["customer_support_sla.md"],
+      "answer_spans": [
+        "service credit of 10 percent of the monthly fee",
+        "the service credit is 25 percent of the monthly fee",
+        "the service credit is 50 percent of the monthly fee"
+      ]
+    },
+    {
+      "id": "q019",
+      "question": "For how long each year may staff base themselves in a different nation without a formal posting?",
+      "ground_truth": "Up to 20 working days per calendar year, provided the country is on the approved list maintained by the Legal team.",
+      "question_type": "paraphrased",
+      "relevant_documents": ["remote_work_policy.md"],
+      "answer_spans": ["work from another country for up to 20 working days per calendar year"]
+    },
+    {
+      "id": "q020",
+      "question": "How big may one review request be before it has to be broken up?",
+      "ground_truth": "No more than 400 lines; larger changes must be split unless the change is a mechanical refactor.",
+      "question_type": "paraphrased",
+      "relevant_documents": ["engineering_onboarding.md"],
+      "answer_spans": ["Pull requests should change no more than 400 lines"]
+    },
+    {
+      "id": "q021",
+      "question": "How fast is a client informed once their records have been exposed?",
+      "ground_truth": "Without undue delay and in any event within 48 hours of becoming aware of the breach.",
+      "question_type": "paraphrased",
+      "relevant_documents": ["data_processing_agreement.md"],
+      "answer_spans": ["within 48 hours of becoming aware of a personal data breach"]
+    },
+    {
+      "id": "q022",
+      "question": "How long does a frozen login stay blocked before it frees itself?",
+      "ground_truth": "30 minutes; the service desk can release it sooner after identity verification.",
+      "question_type": "paraphrased",
+      "relevant_documents": ["it_service_desk_guide.md"],
+      "answer_spans": ["A locked account unlocks automatically after 30 minutes"]
+    },
+    {
+      "id": "q023",
+      "question": "What is the longest outage the customer-facing platform is meant to tolerate?",
+      "ground_truth": "The recovery time objective for the core analytics platform is 4 hours, with a recovery point objective of 15 minutes.",
+      "question_type": "paraphrased",
+      "relevant_documents": ["business_continuity_plan.md"],
+      "answer_spans": ["recovery time objective for the core analytics platform is 4 hours"]
+    },
+
+    {
+      "id": "q024",
+      "question": "Which document carries revision HB-7.2?",
+      "ground_truth": "The Employee Handbook; the current revision is HB-7.2, effective 1 January 2025.",
+      "question_type": "keyword",
+      "relevant_documents": ["employee_handbook.pdf"],
+      "answer_spans": ["The current revision is HB-7.2"]
+    },
+    {
+      "id": "q025",
+      "question": "What does document reference FIN-TE-4 cover?",
+      "ground_truth": "The Travel and Expense Policy, owned by the Finance team and effective from 1 March 2025.",
+      "question_type": "keyword",
+      "relevant_documents": ["travel_expense_policy.md"],
+      "answer_spans": ["document reference FIN-TE-4"]
+    },
+    {
+      "id": "q026",
+      "question": "What is reference ISP-2024-03?",
+      "ground_truth": "The Information Security Policy, owned by the Chief Information Security Officer and reviewed annually.",
+      "question_type": "keyword",
+      "relevant_documents": ["information_security_policy.docx"],
+      "answer_spans": ["reference ISP-2024-03"]
+    },
+    {
+      "id": "q027",
+      "question": "Which procedure is reference SEC-VR-6?",
+      "ground_truth": "The Vendor Risk Assessment Procedure, owned jointly by Procurement and Security.",
+      "question_type": "keyword",
+      "relevant_documents": ["vendor_risk_assessment.md"],
+      "answer_spans": ["reference SEC-VR-6"]
+    },
+    {
+      "id": "q028",
+      "question": "Which team owns reference DATA-ENG-7?",
+      "ground_truth": "The Data Platform team owns the Data Engineering and Pipeline Standards, reference DATA-ENG-7.",
+      "question_type": "keyword",
+      "relevant_documents": ["data_engineering_standards.md"],
+      "answer_spans": ["owned by the Data Platform team, reference DATA-ENG-7"]
+    },
+    {
+      "id": "q029",
+      "question": "What is BCP-3.1 and how often is it tested?",
+      "ground_truth": "BCP-3.1 is the Business Continuity and Disaster Recovery Plan, and it is tested twice a year.",
+      "question_type": "keyword",
+      "relevant_documents": ["business_continuity_plan.md"],
+      "answer_spans": ["It is reference BCP-3.1 and is tested twice a year"]
+    },
+    {
+      "id": "q030",
+      "question": "Which document is reference GOV-COC-3?",
+      "ground_truth": "The Code of Conduct, acknowledged by every employee on joining and annually thereafter.",
+      "question_type": "keyword",
+      "relevant_documents": ["code_of_conduct.docx"],
+      "answer_spans": ["This code is reference GOV-COC-3"]
+    },
+
+    {
+      "id": "q031",
+      "question": "What is a Tier 1 vendor?",
+      "ground_truth": "A vendor that processes customer personal data or has privileged access to production systems.",
+      "question_type": "terminology",
+      "relevant_documents": ["vendor_risk_assessment.md"],
+      "answer_spans": ["A Tier 1 vendor processes customer personal data or has privileged access to production systems"]
+    },
+    {
+      "id": "q032",
+      "question": "What qualifies as a SEV2 incident?",
+      "ground_truth": "A partial loss of service or severe degradation affecting more than 20 percent of customers.",
+      "question_type": "terminology",
+      "relevant_documents": ["incident_response_runbook.md"],
+      "answer_spans": ["A SEV2 incident is a partial loss of service or severe degradation affecting more than 20 percent of customers"]
+    },
+    {
+      "id": "q033",
+      "question": "What does feature drift mean?",
+      "ground_truth": "A change in the statistical distribution of a model input relative to its training distribution.",
+      "question_type": "terminology",
+      "relevant_documents": ["engineering_onboarding.md"],
+      "answer_spans": ["Feature drift refers to a change in the statistical distribution of a model input relative to its training distribution"]
+    },
+    {
+      "id": "q034",
+      "question": "What counts as Restricted data?",
+      "ground_truth": "Customer personal data, payment data and authentication secrets.",
+      "question_type": "terminology",
+      "relevant_documents": ["information_security_policy.docx"],
+      "answer_spans": ["Restricted data includes customer personal data, payment data and authentication secrets"]
+    },
+    {
+      "id": "q035",
+      "question": "What is a Tier A pipeline?",
+      "ground_truth": "A pipeline that feeds customer-facing analytics and must complete by 06:00 Central European Time each day.",
+      "question_type": "terminology",
+      "relevant_documents": ["data_engineering_standards.md"],
+      "answer_spans": ["Tier A pipelines feed customer-facing analytics and must complete by 06:00 Central European Time"]
+    },
+    {
+      "id": "q036",
+      "question": "What is a Tier 1 model under the model governance policy?",
+      "ground_truth": "A model that makes or materially influences decisions about individuals; it requires Model Review Board approval before production deployment.",
+      "question_type": "terminology",
+      "relevant_documents": ["model_governance_policy.md"],
+      "answer_spans": ["Tier 1 models make or materially influence decisions about individuals"]
+    },
+
+    {
+      "id": "q037",
+      "question": "A contractor and a permanent employee both ask about the home office stipend. What is each of them entitled to?",
+      "ground_truth": "Employees can claim a home office stipend of 400 US dollars every two years; contractors are not eligible for it.",
+      "question_type": "multi_step",
+      "relevant_documents": ["contractor_engagement_policy.md", "employee_handbook.pdf"],
+      "answer_spans": [
+        "Contractors are not eligible for the meal per diem, the home office stipend",
+        "A home office stipend of 400 US dollars is available every two years"
+      ]
+    },
+    {
+      "id": "q038",
+      "question": "How does the internal IT first response target for a P1 compare with the customer-facing P1 first response target?",
+      "ground_truth": "The internal service desk target for a P1 is 15 minutes; the customer SLA target for a P1 is 30 minutes.",
+      "question_type": "multi_step",
+      "relevant_documents": ["it_service_desk_guide.md", "customer_support_sla.md"],
+      "answer_spans": [
+        "The internal first response target for a P1 is 15 minutes",
+        "The first response target is 30 minutes for P1"
+      ]
+    },
+    {
+      "id": "q039",
+      "question": "What population stability index thresholds trigger a drift alert, and do the documents agree?",
+      "ground_truth": "They disagree: the Engineering Onboarding Guide and the Model Governance Policy both alert above 0.2, while the ML Platform Standards alert when the index exceeds 0.25.",
+      "question_type": "multi_step",
+      "relevant_documents": ["engineering_onboarding.md", "model_governance_policy.md", "ml_platform_standards.md"],
+      "answer_spans": [
+        "population stability index above 0.2",
+        "population stability index exceeds 0.2",
+        "population stability index for any monitored feature exceeds 0.25"
+      ]
+    },
+    {
+      "id": "q040",
+      "question": "How long are security relevant logs kept, and which documents state that period?",
+      "ground_truth": "400 days, stated in both the Information Security Policy and the Data Retention Schedule.",
+      "question_type": "multi_step",
+      "relevant_documents": ["information_security_policy.docx", "data_retention_schedule.md"],
+      "answer_spans": ["Security relevant logs are retained for 400 days"]
+    },
+    {
+      "id": "q041",
+      "question": "How much notice is required for a breaking public API change compared with a breaking data pipeline schema change?",
+      "ground_truth": "A breaking public API change needs a deprecation notice at least 90 days in advance; a breaking schema change in a data pipeline needs 30 days notice to registered consumers.",
+      "question_type": "multi_step",
+      "relevant_documents": ["product_release_process.md", "data_engineering_standards.md"],
+      "answer_spans": [
+        "a deprecation notice published at least 90 days in advance",
+        "require 30 days notice to registered consumers"
+      ]
+    },
+    {
+      "id": "q042",
+      "question": "An employee refers a candidate who is hired. What referral bonus is paid and when does it become payable?",
+      "ground_truth": "The documents differ: the Employee Handbook states 1500 US dollars after 6 months of continuous service, while the compensation document states 2000 euro for engineering roles and 1200 euro for other roles after three months; the recruitment process repeats the six-month condition.",
+      "question_type": "multi_step",
+      "relevant_documents": ["employee_handbook.pdf", "compensation_and_benefits.pdf", "hr_recruitment_process.md"],
+      "answer_spans": [
+        "referral bonus of 1500 US dollars",
+        "A successful employee referral pays 2000 euro for engineering roles and 1200 euro for all other roles",
+        "The referral bonus is paid after the referred employee completes six months of service"
+      ]
+    },
+    {
+      "id": "q043",
+      "question": "During a SEV1 that involves confirmed loss of customer personal data, how often are internal updates posted and by when must the customer be notified?",
+      "ground_truth": "Internal status updates are posted every 30 minutes during a SEV1, and the customer must be notified within 48 hours of becoming aware of the personal data breach.",
+      "question_type": "multi_step",
+      "relevant_documents": ["incident_response_runbook.md", "data_processing_agreement.md"],
+      "answer_spans": [
+        "Internal status updates are posted every 30 minutes during a SEV1",
+        "within 48 hours of becoming aware of a personal data breach"
+      ]
+    },
+
+    {
+      "id": "q044",
+      "question": "What pet insurance benefit does the company offer to employees?",
+      "ground_truth": "",
+      "question_type": "unanswerable"
+    },
+    {
+      "id": "q045",
+      "question": "How many parking spaces does the Berlin office have?",
+      "ground_truth": "",
+      "question_type": "unanswerable"
+    },
+    {
+      "id": "q046",
+      "question": "What was Northwind Analytics' total revenue in 2024?",
+      "ground_truth": "",
+      "question_type": "unanswerable"
+    },
+    {
+      "id": "q047",
+      "question": "Which cloud provider hosts the production environment?",
+      "ground_truth": "",
+      "question_type": "unanswerable"
+    },
+    {
+      "id": "q048",
+      "question": "Who is the Chief Executive Officer of Northwind Analytics?",
+      "ground_truth": "",
+      "question_type": "unanswerable"
+    },
+    {
+      "id": "q049",
+      "question": "How much does the Enterprise plan cost per month?",
+      "ground_truth": "",
+      "question_type": "unanswerable"
+    },
+    {
+      "id": "q050",
+      "question": "What is the vesting schedule for employee stock options?",
+      "ground_truth": "",
+      "question_type": "unanswerable"
+    }
+  ]
+}

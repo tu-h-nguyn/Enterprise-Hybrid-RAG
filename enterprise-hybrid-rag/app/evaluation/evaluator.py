@@ -66,7 +66,8 @@ class RetrievalEvaluator:
         for question in dataset.questions:
             relevant = self.resolver.resolve(question)
             started = time.perf_counter()
-            _, final, _ = self.service.retrieve(question.question, config.method,
+            # retrieve() returns (candidates, QueryTrace, Stopwatch) — see HANDOFF §4.
+            final, _, _ = self.service.retrieve(question.question, config.method,
                                                 self.top_k, config.rerank)
             latencies.append((time.perf_counter() - started) * 1000)
             retrieved_ids = [hit.chunk_id for hit in final]

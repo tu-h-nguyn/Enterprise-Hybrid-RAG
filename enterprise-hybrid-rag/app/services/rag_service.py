@@ -94,6 +94,11 @@ class RagService:
         return self._bundle is not None and self._bundle.n_chunks > 0
 
     @property
+    def reranker(self) -> BaseReranker:
+        """The reranker actually in use — evaluation artefacts must record it."""
+        return self._reranker
+
+    @property
     def bundle(self) -> IndexBundle:
         if self._bundle is None:
             raise IndexNotReadyError("No index is loaded. Ingest and index documents first.")
