@@ -389,7 +389,7 @@ pip install -r requirements-dev.txt
 
 ruff check .             # lint and import order, configured in pyproject.toml
 mypy                     # app/ and scripts/, 66 files, clean
-pytest --cov=app         # 101 tests, 72% line coverage
+pytest --cov=app         # 115 tests, 74% line coverage
 ```
 
 `mypy` is configured pragmatically rather than strictly: `check_untyped_defs`,
@@ -398,8 +398,10 @@ ship no stubs are excused by name, and the pydantic plugin is enabled — withou
 it every `Field(...)` default reads as a required argument and constructing
 `Settings()` reports eighteen phantom missing arguments.
 
-Coverage is **72%**, with CI failing below 70%. The floor sits just under the
-current figure so it catches a regression without becoming a number to game.
+Coverage is **74%**, with CI failing below 73%. The floor sits just under the
+current figure so it catches a regression without becoming a number to game, and
+is ratcheted when real coverage rises — the LLM provider tests moved it from 70
+to 73.
 What is uncovered is mostly deliberate: the Chroma vector store (tests use the
 in-memory `NumpyVectorStore`, which is the point of having the abstraction) and
 the DOCX loader.
@@ -413,6 +415,16 @@ cover ingest → index → query end-to-end and the API via `TestClient`. Fixtur
 build a hermetic index in `tmp_path`, so the suite needs no network, no API key
 and no pre-existing index.
 
+`tests/unit/test_llm_providers.py` covers the two network-backed providers by
+standing up a real HTTP server on localhost rather than mocking the client, so
+the assertions are about what actually goes over the wire: that OpenAI-shaped
+requests reach `/chat/completions` with a bearer token and the system message
+kept separate from the user turn, that Anthropic reaches `/messages` with
+`x-api-key` and `system` at the top level, and that an HTTP error or a malformed
+200 becomes an `LLMError` rather than an empty answer that would read downstream
+as a model with nothing to say. Before these, `llm.py` sat at 56% and every
+production provider path was untested.
+
 A third workflow, `.github/workflows/benchmark.yml`, re-measures on the neural
 backends and then runs `scripts/compare_results.py` against the committed
 numbers. It compares **quality metrics only** — those are deterministic given
@@ -424,7 +436,7 @@ strongest reproducibility claim in this repository.
 
 CI (`.github/workflows/ci.yml`) runs two jobs on every pull request:
 
-* **Tests and dataset audit** — `ruff`, `mypy`, the suite under a 70% coverage
+* **Tests and dataset audit** — `ruff`, `mypy`, the suite under a 73% coverage
   floor, then ingest, then a label audit, then an API smoke test. The audit is a blocking gate on purpose: a chunker or
   loader change can stop answer spans resolving, which would silently drive
   recall to zero and look exactly like a retrieval regression. This job pins the

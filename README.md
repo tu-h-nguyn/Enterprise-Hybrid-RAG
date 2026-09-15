@@ -5,8 +5,8 @@
 [![CI](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml)
 [![Benchmark](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
-![Tests](https://img.shields.io/badge/tests-101%20passing-brightgreen)
-![Coverage](https://img.shields.io/badge/coverage-72%25-green)
+![Tests](https://img.shields.io/badge/tests-115%20passing-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-74%25-green)
 ![Ruff](https://img.shields.io/badge/lint-ruff-261230)
 ![mypy](https://img.shields.io/badge/types-mypy%20clean-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
@@ -202,20 +202,27 @@ pip install -r requirements-dev.txt
 
 ruff check .    # lint and import order
 mypy            # 66 source files, clean
-pytest          # 101 tests, under 2s, no network and no API key
+pytest          # 115 tests, no network and no API key
 ```
 
 `mypy` runs over `app/` and `scripts/` and reports no issues, which is what
 makes "type hints everywhere" a checkable claim rather than a README assertion.
-Line coverage is **72%**, and CI fails below 70% so it cannot quietly rot. The
+Line coverage is **74%**, and CI fails below 73% so it cannot quietly rot. The
 uncovered remainder is mostly the Chroma backend (tests use the in-memory store
 by design) and the DOCX loader.
+
+The two network-backed LLM providers are covered without a network or a key, by
+standing up a local HTTP server that speaks the same protocol. That is what
+turns *"works with OpenAI, Anthropic or a local Ollama server"* from a claim in
+a docstring into something the suite demonstrates — including that Anthropic's
+different endpoint, headers and body shape genuinely work, which is the only
+reason a second provider is worth carrying.
 
 Unit tests cover the PDF loader against a PDF generated inside the test, chunker page/section provenance, RRF against a hand-computed example, BM25 and dense retrieval (the latter with a stub embedder and hand-placed vectors), reranker ordering, context budget and dedup, citation parsing, the gate per score scale, and the metric arithmetic. Integration tests cover ingest → index → query and the API via `TestClient`.
 
 Two workflows run per pull request:
 
-- **CI** — `ruff`, `mypy`, tests with a 70% coverage floor, ingest, a **blocking evaluation-label audit**, and an API smoke test, on pinned offline backends so the job is deterministic. The audit is a real gate: it was verified by deliberately corrupting an answer span and confirming a non-zero exit.
+- **CI** — `ruff`, `mypy`, tests with a 73% coverage floor, ingest, a **blocking evaluation-label audit**, and an API smoke test, on pinned offline backends so the job is deterministic. The audit is a real gate: it was verified by deliberately corrupting an answer span and confirming a non-zero exit.
 - **Docker** — builds both image targets with the Actions layer cache, ingests inside the container, then starts it and queries the live API. Without the cache this job re-downloaded ~3 GB of wheels every run and took anywhere from 2 to 37 minutes.
 - **Benchmark** — the full suite on the neural backends. It compares what it just measured against the committed numbers on **quality metrics only**, since latency is wall-clock and moves every run. Identical output means the benchmark reproduced; it commits regenerated results only when a quality metric actually changed. Two independent runs on different runners agreed on all **698** compared values.
 
