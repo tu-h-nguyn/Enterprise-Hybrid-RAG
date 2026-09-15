@@ -95,6 +95,41 @@ KS: tuple[int, ...] = (1, 3, 5, 10)
 #: price of approximate search, and is worth reporting rather than assuming.
 DEFAULT_VECTOR_BACKENDS: tuple[VectorBackend, ...] = ("numpy", "chroma")
 
+#: Overlap as a share of chunk size, held constant so a chunk-size comparison
+#: isolates chunk size rather than confounding it with overlap. Same ratio the
+#: chunk-size ablation in ``app.evaluation.experiments`` uses.
+OVERLAP_RATIO = 0.2
+
+#: ``--extra-chunk-sizes`` runs against exhaustive search only. Whether the
+#: approximate index costs recall is a separate question, already answered at
+#: the configured chunk size, and re-asking it at every extra size would double
+#: the run for nothing.
+EXTRA_CHUNK_SIZE_STORE: VectorBackend = "numpy"
+
+
+def _overlap_for(chunk_size: int) -> int:
+    return max(0, round(chunk_size * OVERLAP_RATIO))
+
+
+def _run_plan(chunk_sizes: list[int], vector_backends: list[VectorBackend],
+              configured_chunk_size: int) -> list[tuple[int, VectorBackend]]:
+    """Which (chunk size, vector store) pairs to run, and in what order.
+
+    The configured chunk size is run against every requested store, because the
+    exact-vs-approximate comparison is one of the things the experiment is for.
+    Any *extra* chunk size is run against exhaustive search only — see
+    ``EXTRA_CHUNK_SIZE_STORE``.
+    """
+    plan: list[tuple[int, VectorBackend]] = []
+    for chunk_size in chunk_sizes:
+        if chunk_size == configured_chunk_size:
+            plan.extend((chunk_size, store) for store in vector_backends)
+        elif EXTRA_CHUNK_SIZE_STORE in vector_backends:
+            plan.append((chunk_size, EXTRA_CHUNK_SIZE_STORE))
+        else:
+            plan.append((chunk_size, vector_backends[0]))
+    return plan
+
 
 def _backend_identity(backends: dict) -> tuple[str, str, str]:
     """Which models are in play, ignoring the corpus-dependent embedding width."""
@@ -152,12 +187,17 @@ def run_one_size(settings: Settings, dataset: EvalDataset, real_paths: list[Path
                  distractor_paths: list[Path], scratch: Path,
                  configs: tuple[RetrievalConfig, ...],
                  baseline_gold: dict[str, set[str]] | None,
-                 vector_backend: VectorBackend = "chroma"
+                 vector_backend: VectorBackend = "chroma",
+                 chunk_size: int | None = None
                  ) -> tuple[dict, dict[str, set[str]], dict]:
     """Ingest, index and evaluate one corpus size in an isolated directory."""
-    run_dir = scratch / f"{vector_backend}_n{len(distractor_paths):05d}"
+    chunk_size = chunk_size or settings.chunk_size_tokens
+    overlap = _overlap_for(chunk_size)
+    run_dir = scratch / f"{vector_backend}_c{chunk_size}_n{len(distractor_paths):05d}"
     run_settings = settings.model_copy(update={
         "vector_backend": vector_backend,
+        "chunk_size_tokens": chunk_size,
+        "chunk_overlap_tokens": overlap,
         "processed_dir": run_dir,
         "chroma_dir": run_dir / "chroma",
         "bm25_dir": run_dir / "bm25",
@@ -178,6 +218,7 @@ def run_one_size(settings: Settings, dataset: EvalDataset, real_paths: list[Path
         raise RuntimeError(
             "Gold chunk sets changed when the corpus grew, so the metrics would not be "
             f"comparable across sizes. Affected questions: {changed[:5]}"
+            f" (chunk_size={chunk_size})"
         )
 
     build_started = time.perf_counter()
@@ -203,6 +244,8 @@ def run_one_size(settings: Settings, dataset: EvalDataset, real_paths: list[Path
 
     payload = {
         "vector_backend": vector_backend,
+        "chunk_size_tokens": chunk_size,
+        "chunk_overlap_tokens": overlap,
         # The offline tfidf_svd fallback sizes itself from the corpus
         # (``min(target_dim, rank - 1)``), so this is not constant across sizes
         # the way a neural encoder's 384 is. Recorded per row, and flagged in
@@ -226,16 +269,16 @@ def run_one_size(settings: Settings, dataset: EvalDataset, real_paths: list[Path
 
 
 def print_table(sizes: list[dict]) -> None:
-    header = (f"{'Store':<7}{'Chunks':>8}  {'Configuration':<22}{'R@1':>8}{'R@5':>8}"
-              f"{'MRR':>8}{'ms':>9}{'distr@1':>9}{'distr%@5':>10}")
+    header = (f"{'Chunk':>6}{'Store':>8}{'Chunks':>8}  {'Configuration':<22}{'R@1':>8}"
+              f"{'R@5':>8}{'MRR':>8}{'ms':>9}{'distr@1':>9}{'distr%@5':>10}")
     print(header)
     print("-" * len(header))
     for size in sizes:
         for i, config in enumerate(size["configs"]):
             m = config["metrics"]
             interference = config["distractor_interference"]
-            left = (f"{size['vector_backend']:<7}{size['n_chunks']:>8}"
-                    if i == 0 else " " * 15)
+            left = (f"{size['chunk_size_tokens']:>6}{size['vector_backend']:>8}"
+                    f"{size['n_chunks']:>8}" if i == 0 else " " * 22)
             print(f"{left}  {config['label']:<22}{m['recall@1']:>8.4f}{m['recall@5']:>8.4f}"
                   f"{m['mrr']:>8.4f}{config['latency_ms_mean']:>9.2f}"
                   f"{interference['at_rank_1']:>9.4f}{interference['share_at_5']:>10.4f}")
@@ -293,17 +336,18 @@ def render_report(payload: dict) -> str:
         "",
         "## Results",
         "",
-        "| Store | Chunks | Gold share | Configuration | R@1 | R@5 | MRR | mean ms "
-        "| distr@1 | distr%@5 |",
-        "|---|---:|---:|---|---:|---:|---:|---:|---:|---:|",
+        "| Chunk | Store | Chunks | Gold share | Configuration | R@1 | R@5 | MRR "
+        "| mean ms | distr@1 | distr%@5 |",
+        "|---:|---|---:|---:|---|---:|---:|---:|---:|---:|---:|",
     ]
     for size in payload["sizes"]:
         for i, config in enumerate(size["configs"]):
             m = config["metrics"]
             interference = config["distractor_interference"]
-            left = (f"| `{size['vector_backend']}` | {size['n_chunks']} | "
+            left = (f"| {size['chunk_size_tokens']} | `{size['vector_backend']}` "
+                    f"| {size['n_chunks']} | "
                     f"{size['gold_share_of_corpus'] * 100:.2f}% "
-                    if i == 0 else "|  |  |  ")
+                    if i == 0 else "|  |  |  |  ")
             lines.append(
                 f"{left}| {config['label']} | {m['recall@1']:.4f} | {m['recall@5']:.4f} | "
                 f"{m['mrr']:.4f} | {config['latency_ms_mean']:.2f} | "
@@ -324,6 +368,35 @@ def render_report(payload: dict) -> str:
             lines.append(f"| {row['n_chunks']} | {row['label']} | {row['exact']:.4f} | "
                          f"{row['approximate']:.4f} | {row['lost']:+.4f} |")
 
+    chunk_rows = _chunk_size_rows(payload)
+    if chunk_rows:
+        configured = payload["chunking"]["configured_chunk_size_tokens"]
+        lines += ["", "## Does the chunk size that wins on a small corpus still win?", "",
+                  "Recall@1 for the production configuration (hybrid + reranker) under",
+                  "exhaustive search, at each chunk size. Corpus sizes are matched by how",
+                  "many distractor *documents* were added, because a different chunk size",
+                  "turns the same documents into a different number of chunks — that",
+                  "count is shown for each.", "",
+                  "| Distractor docs | "
+                  + " | ".join(f"{c} tok — chunks / R@1 / MRR" for c in chunk_rows["sizes"])
+                  + " | best |",
+                  "|---:|" + "---:|" * len(chunk_rows["sizes"]) + "---|"]
+        for row in chunk_rows["rows"]:
+            cells = []
+            for chunk_size in chunk_rows["sizes"]:
+                cell = row["by_chunk"].get(chunk_size)
+                cells.append("—" if cell is None else
+                             f"{cell['n_chunks']} / {cell['recall@1']:.4f} / "
+                             f"{cell['mrr']:.4f}")
+            best = row["best"]
+            lines.append(f"| {row['n_distractor_documents']} | " + " | ".join(cells)
+                         + f" | {'tie' if best is None else f'{best} tok'} |")
+        lines += ["",
+                  f"The shipped default is {configured} tokens. A chunk size that wins "
+                  "only at the smallest corpus is a finding about the corpus, not about "
+                  "chunking — which is the whole reason this table is not just the "
+                  "chunk-size ablation run again."]
+
     lines += ["", "## Index build cost", "",
               "| Store | Chunks | Documents | Embedding dim | Index build (s) |",
               "|---|---:|---:|---:|---:|"]
@@ -340,17 +413,53 @@ def render_report(payload: dict) -> str:
     return "\n".join(lines)
 
 
+def _chunk_size_rows(payload: dict) -> dict | None:
+    """Hybrid + reranker under exhaustive search, one row per corpus size.
+
+    Returns ``None`` when only one chunk size was run, so the section is simply
+    absent rather than a table with one column.
+    """
+    label = "Hybrid + Reranker"
+    chunk_sizes = sorted({row["chunk_size_tokens"] for row in payload["sizes"]})
+    if len(chunk_sizes) < 2:
+        return None
+
+    by_docs: dict[int, dict[int, dict]] = {}
+    for row in payload["sizes"]:
+        if row["vector_backend"] != "numpy":
+            continue
+        config = next((c for c in row["configs"] if c["label"] == label), None)
+        if config is None:
+            continue
+        by_docs.setdefault(row["n_distractor_documents"], {})[row["chunk_size_tokens"]] = {
+            "n_chunks": row["n_chunks"],
+            "recall@1": config["metrics"]["recall@1"],
+            "mrr": config["metrics"]["mrr"],
+        }
+
+    rows = []
+    for n_docs in sorted(by_docs):
+        by_chunk = by_docs[n_docs]
+        top = max(by_chunk.values(), key=lambda cell: cell["recall@1"])["recall@1"]
+        winners = [c for c, cell in by_chunk.items() if cell["recall@1"] == top]
+        rows.append({"n_distractor_documents": n_docs, "by_chunk": by_chunk,
+                     "best": winners[0] if len(winners) == 1 else None})
+    return {"sizes": chunk_sizes, "rows": rows}
+
+
 def _ann_cost_rows(payload: dict) -> list[dict]:
     """Pair up the exact and approximate runs at each size, where both exist."""
-    exact = {(row["n_chunks"], c["label"]): c["metrics"]["recall@1"]
+    exact = {(row["chunk_size_tokens"], row["n_chunks"], c["label"]):
+             c["metrics"]["recall@1"]
              for row in payload["sizes"] if row["vector_backend"] == "numpy"
              for c in row["configs"]}
-    approximate = {(row["n_chunks"], c["label"]): c["metrics"]["recall@1"]
+    approximate = {(row["chunk_size_tokens"], row["n_chunks"], c["label"]):
+                   c["metrics"]["recall@1"]
                    for row in payload["sizes"] if row["vector_backend"] == "chroma"
                    for c in row["configs"]}
     rows = []
     for key in sorted(set(exact) & set(approximate)):
-        n_chunks, label = key
+        _, n_chunks, label = key
         rows.append({"n_chunks": n_chunks, "label": label,
                      "exact": exact[key], "approximate": approximate[key],
                      "lost": exact[key] - approximate[key]})
@@ -366,6 +475,10 @@ def main() -> int:
     parser.add_argument("--vector-backends", nargs="*", default=list(DEFAULT_VECTOR_BACKENDS),
                         choices=list(get_args(VectorBackend)),
                         help="Vector stores to run at every size (default: both)")
+    parser.add_argument("--extra-chunk-sizes", nargs="*", type=int, default=[],
+                        metavar="TOKENS",
+                        help="Also run the whole sweep at these chunk sizes, in addition "
+                             "to the configured one, against exhaustive search")
     parser.add_argument("--seed", type=int, default=20250915)
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--quiet", action="store_true")
@@ -387,6 +500,9 @@ def main() -> int:
     sizes = sorted({max(0, n) for n in args.sizes})
     vector_backends: list[VectorBackend] = [b for b in DEFAULT_VECTOR_BACKENDS
                                             if b in set(args.vector_backends)]
+    chunk_sizes = [settings.chunk_size_tokens]
+    chunk_sizes += [c for c in dict.fromkeys(args.extra_chunk_sizes)
+                    if c > 0 and c != settings.chunk_size_tokens]
     scratch = Path(tempfile.mkdtemp(prefix="rag_scale_"))
     try:
         distractor_dir = scratch / "distractors"
@@ -400,24 +516,31 @@ def main() -> int:
         print(f"Real corpus: {len(real_paths)} documents from {settings.raw_dir}")
         print(f"Distractors: {len(available)} generated (seed {args.seed})")
         print(f"Sizes      : {sizes} distractor documents")
-        print(f"Stores     : {vector_backends}\n")
+        print(f"Stores     : {vector_backends}")
+        print(f"Chunk sizes: {chunk_sizes} "
+              f"(configured {settings.chunk_size_tokens})\n")
 
         rows: list[dict] = []
-        baseline_gold: dict[str, set[str]] | None = None
+        # Gold chunk IDs are resolved from answer spans against the chunks a
+        # given chunking produced, so they legitimately differ between chunk
+        # sizes and must only be held constant *within* one.
+        baseline_gold: dict[int, dict[str, set[str]]] = {}
         backends: dict | None = None
-        for vector_backend in vector_backends:
+        for chunk_size, vector_backend in _run_plan(chunk_sizes, vector_backends,
+                                                    settings.chunk_size_tokens):
             for n in sizes:
                 started = time.perf_counter()
                 payload, gold, run_backends = run_one_size(
                     settings, dataset, real_paths, available[:n], scratch,
-                    DEFAULT_CONFIGS, baseline_gold, vector_backend)
-                if baseline_gold is None:
-                    baseline_gold = gold
-                # The vector store is the variable here; which embedder,
-                # reranker and LLM are in play must not change under us, or the
-                # rows stop being comparable. The embedder's *dimension* is
-                # allowed to move, because the offline fallback derives it from
-                # the corpus; that is recorded per row and flagged in the report.
+                    DEFAULT_CONFIGS, baseline_gold.get(chunk_size), vector_backend,
+                    chunk_size)
+                baseline_gold.setdefault(chunk_size, gold)
+                # The vector store and the chunk size are the variables here;
+                # which embedder, reranker and LLM are in play must not change
+                # under us, or the rows stop being comparable. The embedder's
+                # *dimension* is allowed to move, because the offline fallback
+                # derives it from the corpus; that is recorded per row and
+                # flagged in the report.
                 identity = _backend_identity(run_backends)
                 if backends is None:
                     backends = {k: v for k, v in run_backends.items()
@@ -427,8 +550,8 @@ def main() -> int:
                         "Model backends changed between runs, so the rows are not "
                         f"comparable: {_backend_identity(backends)} -> {identity}")
                 rows.append(payload)
-                print(f"  {vector_backend:<7} size {n:>5} distractors -> "
-                      f"{payload['n_chunks']:>5} chunks "
+                print(f"  chunk {chunk_size:>4}  {vector_backend:<7} "
+                      f"size {n:>5} distractors -> {payload['n_chunks']:>5} chunks "
                       f"in {time.perf_counter() - started:.1f}s")
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
@@ -443,8 +566,10 @@ def main() -> int:
                         "generator": "scripts/make_distractor_corpus.py"},
         "backends": backends,
         "vector_backends": vector_backends,
-        "chunking": {"chunk_size_tokens": settings.chunk_size_tokens,
-                     "chunk_overlap_tokens": settings.chunk_overlap_tokens},
+        "chunking": {"configured_chunk_size_tokens": settings.chunk_size_tokens,
+                     "configured_chunk_overlap_tokens": settings.chunk_overlap_tokens,
+                     "chunk_sizes_run": chunk_sizes,
+                     "overlap_ratio": OVERLAP_RATIO},
         "ks": list(KS),
         "sizes": rows,
     }

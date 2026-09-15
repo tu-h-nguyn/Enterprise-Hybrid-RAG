@@ -24,7 +24,8 @@ BACKENDS = {
 def _scale_payload(chroma_mrr: float = 0.62, numpy_mrr: float = 0.63) -> dict:
     def size(store: str, mrr: float) -> dict:
         return {
-            "vector_backend": store, "n_chunks": 4658, "n_distractor_documents": 3400,
+            "vector_backend": store, "chunk_size_tokens": 500,
+            "n_chunks": 4658, "n_distractor_documents": 3400,
             "n_gold_chunks": 30, "embedding_dim": 384, "index_build_seconds": 155.0,
             "configs": [{"label": "Hybrid (RRF)", "metrics": {"recall@1": 0.4457, "mrr": mrr},
                          "latency_ms_mean": 54.63,
@@ -54,7 +55,19 @@ def test_scale_rows_are_keyed_by_store_as_well_as_size() -> None:
     """Both stores index the same corpus; colliding them would hide half the run."""
     view = quality_view(_scale_payload())
 
-    assert set(view["scale"]) == {"numpy/4658", "chroma/4658"}
+    assert set(view["scale"]) == {"numpy/c500/4658", "chroma/c500/4658"}
+
+
+def test_scale_rows_are_keyed_by_chunk_size_too() -> None:
+    """A second chunk size produces its own rows, which must not overwrite the first."""
+    payload = _scale_payload()
+    extra = json.loads(json.dumps(payload["sizes"][0]))
+    extra["chunk_size_tokens"] = 256
+    extra["n_chunks"] = 8137
+    payload["sizes"].append(extra)
+
+    assert set(quality_view(payload)["scale"]) == {
+        "numpy/c500/4658", "chroma/c500/4658", "numpy/c256/8137"}
 
 
 def test_interference_is_compared_too() -> None:

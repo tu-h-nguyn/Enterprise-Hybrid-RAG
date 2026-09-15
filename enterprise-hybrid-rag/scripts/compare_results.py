@@ -66,9 +66,11 @@ def quality_view(payload: dict[str, Any]) -> dict[str, Any]:
     # if the same corpus stopped competing with the gold chunks, that is a real
     # change and not a timing artefact.
     for row in payload.get("sizes", []):
-        # Keyed by store as well as size: the same corpus is run through both
-        # the exact and the approximate index, and they must not collide.
-        key = f"{row.get('vector_backend', 'chroma')}/{row['n_chunks']}"
+        # Keyed by store and chunk size as well as corpus size: the same corpus
+        # is run through both the exact and the approximate index, and possibly
+        # at more than one chunk size. None of those may collide.
+        key = (f"{row.get('vector_backend', 'chroma')}"
+               f"/c{row.get('chunk_size_tokens', 'default')}/{row['n_chunks']}")
         view["scale"][key] = {
             "n_distractor_documents": row["n_distractor_documents"],
             "n_gold_chunks": row["n_gold_chunks"],

@@ -24,9 +24,11 @@ from app.evaluation.evaluator import DEFAULT_CONFIGS
 from app.models.document import Chunk
 from make_distractor_corpus import TOPICS, generate, render_document
 from scale_experiment import (
+    EXTRA_CHUNK_SIZE_STORE,
     ContaminationError,
     _assert_uncontaminated,
     _interference,
+    _run_plan,
     run_one_size,
 )
 
@@ -203,3 +205,61 @@ def test_the_tiny_corpus_labels_resolve_at_all(settings: Settings, chunks: list[
                                                dataset: EvalDataset) -> None:
     """Guards the fixtures themselves: unresolvable labels look like a miss."""
     assert RelevanceResolver(chunks).audit(dataset) == []
+
+
+# ------------------------------------------------------------------ run plan
+def test_the_configured_chunk_size_is_run_against_every_store() -> None:
+    plan = _run_plan([500], ["numpy", "chroma"], configured_chunk_size=500)
+
+    assert plan == [(500, "numpy"), (500, "chroma")]
+
+
+def test_an_extra_chunk_size_is_run_against_exhaustive_search_only() -> None:
+    """Whether HNSW costs recall is a separate question, already answered."""
+    plan = _run_plan([500, 256], ["numpy", "chroma"], configured_chunk_size=500)
+
+    assert plan == [(500, "numpy"), (500, "chroma"), (256, EXTRA_CHUNK_SIZE_STORE)]
+
+
+def test_an_extra_chunk_size_falls_back_when_exhaustive_was_not_requested() -> None:
+    plan = _run_plan([500, 256], ["chroma"], configured_chunk_size=500)
+
+    assert plan == [(500, "chroma"), (256, "chroma")]
+
+
+# ----------------------------------------------------------- chunk size runs
+def test_a_different_chunk_size_produces_a_different_corpus(
+        settings: Settings, dataset: EvalDataset, raw_dir: Path, tmp_path: Path) -> None:
+    """The point of the sweep: same documents, different number of chunks."""
+    real_paths = sorted(raw_dir.glob("*.md"))
+
+    wide, _, _ = run_one_size(settings, dataset, real_paths, [], tmp_path / "s",
+                              DEFAULT_CONFIGS, None, "numpy", chunk_size=400)
+    narrow, _, _ = run_one_size(settings, dataset, real_paths, [], tmp_path / "s",
+                                DEFAULT_CONFIGS, None, "numpy", chunk_size=80)
+
+    assert wide["chunk_size_tokens"] == 400
+    assert narrow["chunk_size_tokens"] == 80
+    assert narrow["n_chunks"] > wide["n_chunks"]
+    assert wide["chunk_overlap_tokens"] == 80        # 20% of the size, held constant
+    assert narrow["chunk_overlap_tokens"] == 16
+
+
+def test_gold_is_resolved_per_chunk_size_not_pinned(
+        settings: Settings, dataset: EvalDataset, raw_dir: Path, tmp_path: Path) -> None:
+    """Labels are answer spans, so they must re-resolve rather than go missing.
+
+    Holding one chunk size's gold IDs against another would abort the sweep, so
+    the baseline is kept per chunk size. What must hold at every size is that
+    every question still resolves to at least one chunk.
+    """
+    real_paths = sorted(raw_dir.glob("*.md"))
+
+    _, wide_gold, _ = run_one_size(settings, dataset, real_paths, [], tmp_path / "s",
+                                   DEFAULT_CONFIGS, None, "numpy", chunk_size=400)
+    _, narrow_gold, _ = run_one_size(settings, dataset, real_paths, [], tmp_path / "s",
+                                     DEFAULT_CONFIGS, None, "numpy", chunk_size=80)
+
+    assert set(wide_gold) == set(narrow_gold)
+    assert all(ids for ids in wide_gold.values())
+    assert all(ids for ids in narrow_gold.values())
