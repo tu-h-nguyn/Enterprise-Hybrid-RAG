@@ -50,7 +50,7 @@ class EvalQuestion(BaseModel):
         return self.question_type == "unanswerable"
 
     @model_validator(mode="after")
-    def _check_labels(self) -> "EvalQuestion":
+    def _check_labels(self) -> EvalQuestion:
         if self.is_unanswerable:
             if self.relevant_documents or self.answer_spans:
                 raise ValueError(f"{self.id}: unanswerable questions must have no relevance labels")
@@ -82,7 +82,7 @@ class EvalDataset(BaseModel):
         return dict(sorted(counts.items()))
 
     @classmethod
-    def load(cls, path: Path) -> "EvalDataset":
+    def load(cls, path: Path) -> EvalDataset:
         path = Path(path)
         if not path.exists():
             raise FileNotFoundError(f"Evaluation dataset not found: {path}")

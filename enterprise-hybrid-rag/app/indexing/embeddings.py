@@ -49,7 +49,7 @@ class BaseEmbedder(abc.ABC):
     def is_fitted(self) -> bool:
         return True
 
-    def fit(self, corpus: list[str]) -> "BaseEmbedder":
+    def fit(self, corpus: list[str]) -> BaseEmbedder:
         return self
 
     @abc.abstractmethod
@@ -82,7 +82,11 @@ class SentenceTransformerEmbedder(BaseEmbedder):
             raise EmbeddingError(f"Could not load embedding model '{model_name}': {exc}") from exc
         self.model_name = model_name
         self.batch_size = batch_size
-        self._dim = int(self._model.get_sentence_embedding_dimension())
+        dimension = self._model.get_sentence_embedding_dimension()
+        if dimension is None:
+            raise EmbeddingError(
+                f"Model '{model_name}' did not report an embedding dimension")
+        self._dim = int(dimension)
 
     @property
     def dimension(self) -> int:
@@ -119,7 +123,7 @@ class TfidfSvdEmbedder(BaseEmbedder):
     def is_fitted(self) -> bool:
         return self._pipeline is not None
 
-    def fit(self, corpus: list[str]) -> "TfidfSvdEmbedder":
+    def fit(self, corpus: list[str]) -> TfidfSvdEmbedder:
         from sklearn.decomposition import TruncatedSVD
         from sklearn.feature_extraction.text import TfidfVectorizer
         from sklearn.pipeline import FeatureUnion, Pipeline

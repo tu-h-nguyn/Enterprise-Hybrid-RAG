@@ -19,14 +19,18 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.config.settings import get_settings  # noqa: E402
-from app.evaluation.dataset import EvalDataset, RelevanceResolver  # noqa: E402
-from app.evaluation.experiments import (DEFAULT_CHUNK_SIZES, ExperimentRunner,  # noqa: E402
-                                        ExperimentSuiteConfig, backend_caveat,
-                                        describe_backends)
-from app.ingestion.pipeline import IngestionPipeline  # noqa: E402
-from app.observability.logging import configure_logging  # noqa: E402
-from app.services.rag_service import RagService  # noqa: E402
+from app.config.settings import get_settings
+from app.evaluation.dataset import EvalDataset, RelevanceResolver
+from app.evaluation.experiments import (
+    DEFAULT_CHUNK_SIZES,
+    ExperimentRunner,
+    ExperimentSuiteConfig,
+    backend_caveat,
+    describe_backends,
+)
+from app.ingestion.pipeline import IngestionPipeline
+from app.observability.logging import configure_logging
+from app.services.rag_service import RagService
 
 
 def print_comparison(rows: list[dict]) -> None:

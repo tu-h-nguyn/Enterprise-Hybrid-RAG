@@ -87,7 +87,7 @@ class Chunk(BaseModel):
         return flat
 
     @classmethod
-    def from_flat(cls, chunk_id: str, text: str, flat: dict[str, Any]) -> "Chunk":
+    def from_flat(cls, chunk_id: str, text: str, flat: dict[str, Any]) -> Chunk:
         metadata = {k[5:]: v for k, v in flat.items() if k.startswith("meta_")}
         return cls(
             chunk_id=chunk_id,

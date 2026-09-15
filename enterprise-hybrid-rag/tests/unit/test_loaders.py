@@ -13,8 +13,8 @@ except ImportError:  # pragma: no cover
     import fitz
 
 from app.ingestion.loaders.base import LoaderError
-from app.ingestion.loaders.registry import LoaderRegistry
 from app.ingestion.loaders.pdf_loader import PDFLoader
+from app.ingestion.loaders.registry import LoaderRegistry
 
 
 def _write_pdf(path: Path, pages: list[tuple[str, list[str]]]) -> Path:

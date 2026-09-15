@@ -14,10 +14,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.config.settings import get_settings  # noqa: E402
-from app.indexing.index_builder import IndexBuilder  # noqa: E402
-from app.ingestion.pipeline import IngestionPipeline  # noqa: E402
-from app.observability.logging import configure_logging  # noqa: E402
+from app.config.settings import get_settings
+from app.indexing.index_builder import IndexBuilder
+from app.ingestion.pipeline import IngestionPipeline
+from app.observability.logging import configure_logging
 
 
 def main() -> int:
@@ -50,7 +50,8 @@ def main() -> int:
     print(f"\nIngested {len(documents)} documents -> {len(chunks)} chunks")
     print(f"  chunk size / overlap : {settings.chunk_size_tokens} / {settings.chunk_overlap_tokens} tokens")
     print(f"  embedder             : {bundle.manifest['embedder']}")
-    print(f"  vector backend       : {bundle.manifest['vector_backend']} ({bundle.vector_store.count()} vectors)")
+    print(f"  vector backend       : {bundle.manifest['vector_backend']} "
+          f"({bundle.vector_store.count()} vectors)")
     print(f"  bm25                 : {bundle.bm25.count()} chunks")
     for document in documents:
         n = sum(1 for c in chunks if c.document_id == document.document_id)

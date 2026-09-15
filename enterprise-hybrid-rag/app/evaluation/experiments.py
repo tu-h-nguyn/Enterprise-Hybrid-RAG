@@ -32,16 +32,21 @@ import platform
 import shutil
 import sys
 import tempfile
-from datetime import datetime, timezone
+from collections.abc import Iterable, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable, Sequence
 
 from pydantic import BaseModel, Field
 
 from app.config.settings import Settings
 from app.evaluation.dataset import EvalDataset, RelevanceResolver
-from app.evaluation.evaluator import (DEFAULT_CONFIGS, GenerationEvaluator, RetrievalConfig,
-                                      RetrievalEvaluator, RetrievalRunResult)
+from app.evaluation.evaluator import (
+    DEFAULT_CONFIGS,
+    GenerationEvaluator,
+    RetrievalConfig,
+    RetrievalEvaluator,
+    RetrievalRunResult,
+)
 from app.evaluation.generation_metrics import LLMJudge
 from app.evaluation.retrieval_metrics import DEFAULT_KS
 from app.indexing.index_builder import IndexBuilder, IndexBundle
@@ -76,7 +81,7 @@ class ExperimentSuiteConfig(BaseModel):
 
 
 def _overlap_for(chunk_size: int) -> int:
-    return max(0, int(round(chunk_size * OVERLAP_RATIO)))
+    return max(0, round(chunk_size * OVERLAP_RATIO))
 
 
 def describe_backends(service: RagService) -> dict[str, object]:
@@ -225,7 +230,7 @@ class ExperimentRunner:
     def run(self, service: RagService, chunks: list[Chunk]) -> dict:
         backends = describe_backends(service)
         payload: dict = {
-            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
             "environment": {
                 "python": sys.version.split()[0],
                 "platform": platform.platform(),
@@ -430,7 +435,8 @@ def render_report(payload: dict) -> str:
                 prefix = ([str(row["chunk_size_tokens"]), str(row["chunk_overlap_tokens"]),
                            str(row["n_chunks"]), str(row["mean_chunk_tokens"]),
                            str(row["embedding_dim"])] if i == 0 else ["", "", "", "", ""])
-                lines.append("| " + " | ".join(prefix + [
+                lines.append("| " + " | ".join([
+                    *prefix,
                     cfg["label"], _fmt(metrics.get("recall@1")), _fmt(metrics.get("recall@5")),
                     _fmt(metrics.get("mrr")), _fmt(metrics.get("ndcg@5")),
                 ]) + " |")

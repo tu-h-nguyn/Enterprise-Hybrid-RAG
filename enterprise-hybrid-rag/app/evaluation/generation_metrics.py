@@ -98,11 +98,12 @@ def citation_support(result: RagAnswer, min_overlap: float = 0.15) -> dict[str, 
         return {"n_citations": 0, "citation_precision": 0.0, "uncited_sentence_rate": 1.0}
 
     by_index = {c.source_index: c for c in result.citations}
-    context_text = {c.source_index: ctx.chunk.text
-                    for c, ctx in zip(result.citations, [result.contexts[c.source_index - 1]
-                                                         for c in result.citations
-                                                         if 0 < c.source_index <= len(result.contexts)])} \
-        if result.contexts else {}
+    # Index directly rather than zipping the citations against a filtered list:
+    # the filter could shorten one side, and a positional zip would then pair a
+    # citation with a different citation's context without failing.
+    context_text = {c.source_index: result.contexts[c.source_index - 1].chunk.text
+                    for c in result.citations
+                    if 0 < c.source_index <= len(result.contexts)} if result.contexts else {}
 
     supported, checked, uncited = 0, 0, 0
     for sentence in split_sentences(result.answer):

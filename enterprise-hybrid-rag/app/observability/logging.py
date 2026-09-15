@@ -14,8 +14,9 @@ import json
 import logging
 import sys
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any
 
 _RESERVED = set(logging.LogRecord("", 0, "", 0, "", (), None).__dict__) | {
     "message", "asctime", "taskName"}

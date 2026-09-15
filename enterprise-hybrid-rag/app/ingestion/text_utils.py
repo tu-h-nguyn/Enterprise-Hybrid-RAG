@@ -44,7 +44,7 @@ def estimate_tokens(text: str, chars_per_token: float = 4.0) -> int:
         return 0
     char_estimate = len(text) / chars_per_token
     word_estimate = len(text.split()) * 1.3
-    return max(1, int(round(max(char_estimate, word_estimate))))
+    return max(1, round(max(char_estimate, word_estimate)))
 
 
 def split_sentences(text: str) -> list[str]:

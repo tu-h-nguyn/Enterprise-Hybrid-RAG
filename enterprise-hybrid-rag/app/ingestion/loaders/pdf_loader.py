@@ -18,7 +18,7 @@ from pathlib import Path
 try:  # PyMuPDF >= 1.24 exposes the modern module name
     import pymupdf as fitz
 except ImportError:  # pragma: no cover - older PyMuPDF
-    import fitz
+    import fitz  # type: ignore[no-redef]  # the older name is the fallback
 
 from app.ingestion.cleaners.text_cleaner import clean_text, detect_boilerplate, strip_lines
 from app.ingestion.loaders.base import BaseLoader, LoaderError
@@ -58,8 +58,13 @@ class PDFLoader(BaseLoader):
                         return
                     text = clean_text(strip_lines("\n".join(buffer), boilerplate))
                     if text:
-                        blocks.append(RawBlock(text=text, page=page_no,
-                                               section=current_section, block_type="paragraph"))
+                        # B023 is suppressed deliberately below: flush() is only
+                        # ever called inside this same iteration, and current_section
+                        # must be read late — binding it early would file a flushed
+                        # buffer under the wrong heading.
+                        blocks.append(RawBlock(text=text, page=page_no,  # noqa: B023
+                                               section=current_section,  # noqa: B023
+                                               block_type="paragraph"))
                     buffer = []
 
                 for span in spans:
@@ -87,7 +92,7 @@ class PDFLoader(BaseLoader):
         finally:
             doc.close()
 
-    def _page_spans(self, doc: "fitz.Document", index: int) -> list[dict]:
+    def _page_spans(self, doc: fitz.Document, index: int) -> list[dict]:
         """Return line-level spans with their dominant font size."""
         page = doc.load_page(index)
         try:

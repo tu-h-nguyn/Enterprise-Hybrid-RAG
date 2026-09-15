@@ -117,7 +117,8 @@ def test_index_text_prepends_title_and_section() -> None:
                       "accruing monthly across the whole of the calendar year.",
                  page=1, section="Annual Leave"),
     ])
-    chunk = Chunker(ChunkingConfig(chunk_size_tokens=200, chunk_overlap_tokens=20)).chunk_document(document)[0]
+    config = ChunkingConfig(chunk_size_tokens=200, chunk_overlap_tokens=20)
+    chunk = Chunker(config).chunk_document(document)[0]
     index_text = Chunker.index_text(chunk)
 
     assert index_text.startswith("Handbook > Annual Leave")

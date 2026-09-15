@@ -28,7 +28,7 @@ class AppState:
     documents: DocumentService
 
     @classmethod
-    def build(cls, settings: Settings | None = None) -> "AppState":
+    def build(cls, settings: Settings | None = None) -> AppState:
         settings = settings or get_settings()
         rag = RagService.from_disk(settings)
         if not rag.is_ready:

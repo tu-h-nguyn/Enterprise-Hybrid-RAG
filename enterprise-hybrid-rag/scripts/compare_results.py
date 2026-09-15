@@ -102,7 +102,7 @@ def main() -> int:
     print(f"{'metric':<62}{'baseline':>12}{'candidate':>12}")
     print("-" * 86)
     for key, old, new in changes[:60]:
-        print(f"{key:<62}{str(old):>12}{str(new):>12}")
+        print(f"{key:<62}{old!s:>12}{new!s:>12}")
     if len(changes) > 60:
         print(f"... and {len(changes) - 60} more")
     return 1
