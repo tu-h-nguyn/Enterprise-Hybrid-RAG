@@ -82,6 +82,8 @@ KNOWN: dict[str, str] = {
     "1664.59": "example API payload, captured at the 500-token default",
     "1689.21": "example API payload, captured at the 500-token default",
     "3.3085": "example API payload, captured at the 500-token default",
+    "20.37": "example API payload, captured at the 500-token default",
+    "2.47": "example API payload, captured at the 500-token default",
     "0.3411": "an offline-fallback HNSW run quoted to show it is not reproducible",
     "0.3876": "an offline-fallback HNSW run quoted to show it is not reproducible",
     "0.3643": "an offline-fallback HNSW run quoted to show it is not reproducible",

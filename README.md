@@ -127,10 +127,27 @@ scores passages half as long. The default moved to 256 on that evidence, and the
 benchmark workflow now measures 500 against it so the decision stays checkable.
 
 The cost is in the table above and is not hidden: 500 and 800 both beat 256 at
-Recall@5. That comparison is not like-for-like across chunk sizes, though — five
-chunks of 500 tokens hand the generator twice the text that five chunks of 256
-do. The metrics where a longer chunk is structurally advantaged are R@1 and MRR,
-because a bigger chunk is a bigger target to hit, and 256 wins those anyway.
+Recall@5. But Recall@5 compares different amounts of text — five chunks of 500
+tokens are twice the context of five chunks of 256 — so that was an argument
+until it was measured. Pricing each depth in the context it actually costs, on
+the largest corpus:
+
+| Context tokens | Chunk size | k | Recall@k |
+|---:|---:|---:|---:|
+| 187 | **256** | 1 | **0.7248** |
+| 344 | 500 | 1 | 0.6318 |
+| 561 | **256** | 3 | **0.8062** |
+| 935 | **256** | 5 | **0.8062** |
+| 1030 | 500 | 3 | 0.7984 |
+| 1718 | 500 | 5 | 0.8566 |
+| 1870 | 256 | 10 | 0.8411 |
+
+**256 reaches 0.8062 on 561 tokens of context. 500 does not reach it until
+1718 — three times as much.** The shipped pipeline passes five chunks, which at
+256 tokens is 935 of context, and nothing at 500 matches it for less. 500 does
+win eventually: at roughly 1.8k tokens it scores 0.8566 against 256's 0.8411.
+That is the honest boundary — pay double the context and the larger chunk is
+better at depth.
 
 ### It still works when the corpus gets much bigger
 

@@ -269,14 +269,33 @@ long. **The default is now 256**, and the benchmark workflow runs 500 as the
 alternative against it, so the decision stays checkable rather than becoming
 folklore.
 
-What that costs is the Recall@5 column above, and it is worth being precise
-about why it is not decisive. Five chunks of 500 tokens hand the generator twice
-the text that five chunks of 256 do, so the larger sizes enter that metric with
-double the context budget. The metrics where a longer chunk is *structurally*
-advantaged are R@1 and MRR — a bigger chunk is a bigger target to hit — and 256
-wins those anyway. A like-for-like comparison at a fixed context budget,
-`top_k=10` at 256 against `top_k=5` at 500, is the follow-up this does not
-attempt.
+What that costs is the Recall@5 column above, and the reason it is not decisive
+used to be an argument: five chunks of 500 tokens hand the generator twice the
+text that five chunks of 256 do, so the larger sizes enter that metric with
+double the context budget. The sweep now records `mean_chunk_tokens`, so the
+argument is a measurement. Pricing each depth in the context it costs, on the
+largest corpus, production configuration, exhaustive search:
+
+| Context tokens | Chunk size | k | Recall@k |
+|---:|---:|---:|---:|
+| 187 | **256** | 1 | **0.7248** |
+| 344 | 500 | 1 | 0.6318 |
+| 561 | **256** | 3 | **0.8062** |
+| 935 | **256** | 5 | **0.8062** |
+| 1030 | 500 | 3 | 0.7984 |
+| 1718 | 500 | 5 | 0.8566 |
+| 1870 | 256 | 10 | 0.8411 |
+| 3435 | 500 | 10 | 0.8682 |
+
+Read as a curve, the answer is not close below about 1.5k tokens. **256 reaches
+0.8062 on 561 tokens; 500 does not reach it until 1718, three times the
+context.** At every budget the shipped pipeline actually uses — five chunks, 935
+tokens at 256 — nothing at 500 matches it for less text.
+
+Where 500 wins is above that: 0.8566 at 1718 tokens against 256's 0.8411 at
+1870, and 0.8682 at 3435. So the fair statement is not "500's Recall@5 advantage
+is an artefact" but something narrower and checkable: *it requires roughly twice
+the context the pipeline passes*. Anyone willing to spend that should use 500.
 
 ### Corpus-scale experiment
 
