@@ -354,10 +354,10 @@ the shipped 256-token chunk size, 50 questions of which 43 are answerable.
 \toprule
 \textbf{Configuration} & \textbf{R@1} & \textbf{R@3} & \textbf{R@5} & \textbf{R@10} & \textbf{MRR} & \textbf{nDCG@5} & \textbf{ms} \\
 \midrule
-Dense only          & 0.5853 & 0.8256 & 0.8953 & 0.9302 & 0.7740 & 0.7869 & 15.61 \\
-BM25 only           & 0.6434 & 0.8023 & 0.8023 & 0.8023 & 0.7597 & 0.7660 & \textbf{0.74} \\
-Hybrid (RRF)        & 0.6434 & 0.8023 & 0.8488 & \textbf{1.0000} & 0.7910 & 0.7862 & 15.91 \\
-\textbf{Hybrid + Reranker} & \textbf{0.7946} & \textbf{0.8953} & 0.9070 & \textbf{1.0000} & \textbf{0.9085} & \textbf{0.8937} & 693.19 \\
+Dense only          & 0.5853 & 0.8256 & 0.8953 & 0.9302 & 0.7740 & 0.7869 & 15.95 \\
+BM25 only           & 0.6434 & 0.8023 & 0.8023 & 0.8023 & 0.7597 & 0.7660 & \textbf{0.75} \\
+Hybrid (RRF)        & 0.6434 & 0.8023 & 0.8488 & \textbf{1.0000} & 0.7910 & 0.7862 & 15.97 \\
+\textbf{Hybrid + Reranker} & \textbf{0.7946} & \textbf{0.8953} & 0.9070 & \textbf{1.0000} & \textbf{0.9085} & \textbf{0.8937} & 693.91 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -728,7 +728,7 @@ update.
 
 \begin{itemize}[leftmargin=1.2em,itemsep=3pt]
   \item \textbf{Lint, types and tests} --- \code{ruff}, \code{mypy} over
-        \code{app/}, \code{scripts/} and \code{frontend/}, and 170 tests behind a
+        \code{app/}, \code{scripts/} and \code{frontend/}, and 174 tests behind a
         coverage floor that fails the build if it drops.
   \item \textbf{A blocking dataset audit.} Evaluation labels are resolved against
         freshly ingested chunks; if any label stops resolving, the build fails.
@@ -818,8 +818,8 @@ Each of these bounds how far the numbers above generalise.
   \item \textbf{Token counts are a \code{chars/4} heuristic}, not a real
         tokenizer, so chunk sizes and context budgets are approximate and a real
         tokenizer would shift chunk boundaries.
-  \item \textbf{Reranking dominates latency} --- 693.19\,ms against BM25's
-        0.74\,ms. Any deployment must decide whether that precision is worth
+  \item \textbf{Reranking dominates latency} --- 693.91\,ms against BM25's
+        0.75\,ms. Any deployment must decide whether that precision is worth
         nearly three orders of magnitude, or whether to rerank only when the
         fusion margin is narrow.
   \item \textbf{Indexing is a full rebuild}, not an incremental upsert. Correct
@@ -867,7 +867,7 @@ Each of these bounds how far the numbers above generalise.
 \code{app/services/}   & RAG pipeline, abstention gate, document lifecycle \\
 \code{frontend/}       & Streamlit interface and the in-process API starter \\
 \code{scripts/}        & Ingest, evaluate, benchmark, corpus-scale experiment \\
-\code{tests/}          & 170 unit and integration tests \\
+\code{tests/}          & 174 unit and integration tests \\
 \code{data/evaluation/}& The labelled dataset and every committed result artefact \\
 \code{HANDOFF.md}      & Interface contracts, status by phase, and what is open \\
 \bottomrule

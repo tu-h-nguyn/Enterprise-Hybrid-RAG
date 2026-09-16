@@ -33,16 +33,20 @@ def artefacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return tmp_path
 
 
-def _document(tmp_path: Path, text: str, monkeypatch: pytest.MonkeyPatch) -> None:
+def _document(tmp_path: Path, text: str, monkeypatch: pytest.MonkeyPatch,
+              known: dict[str, str] | None = None) -> None:
     """Point the checker at one throwaway document and nothing else.
 
     COUNTED is patched too: it otherwise still names the real READMEs, and a
     test would quietly read the repository it is supposed to be isolated from.
+    KNOWN goes with them: the real exemptions all describe prose this throwaway
+    document does not contain, so every one of them would read as stale.
     """
     path = tmp_path / "DOC.md"
     path.write_text(text, encoding="utf-8")
     monkeypatch.setattr(checker, "DOCUMENTS", (path,))
     monkeypatch.setattr(checker, "COUNTED", (path,))
+    monkeypatch.setattr(checker, "KNOWN", known or {})
     monkeypatch.setattr(checker, "REPO_ROOT", tmp_path)
 
 
@@ -178,6 +182,7 @@ def test_a_test_count_that_disagrees_between_documents_fails(
     prose.write_text("| `tests/` | 151 unit and integration tests |", encoding="utf-8")
     monkeypatch.setattr(checker, "DOCUMENTS", (badge, prose))
     monkeypatch.setattr(checker, "COUNTED", (badge, prose))
+    monkeypatch.setattr(checker, "KNOWN", {})
     monkeypatch.setattr(checker, "REPO_ROOT", artefacts)
     monkeypatch.setattr("sys.argv", ["check_report_numbers.py"])
 
@@ -193,7 +198,51 @@ def test_agreeing_test_counts_pass(artefacts: Path,
     prose.write_text("| `tests/` | 168 unit and integration tests |", encoding="utf-8")
     monkeypatch.setattr(checker, "DOCUMENTS", (badge, prose))
     monkeypatch.setattr(checker, "COUNTED", (badge, prose))
+    monkeypatch.setattr(checker, "KNOWN", {})
     monkeypatch.setattr(checker, "REPO_ROOT", artefacts)
     monkeypatch.setattr("sys.argv", ["check_report_numbers.py"])
 
     assert checker.main() == 0
+
+
+def test_an_exemption_the_prose_still_quotes_survives(
+        artefacts: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _document(artefacts, "Built on Python 3.11.", monkeypatch,
+              known={"3.11": "Python version"})
+    monkeypatch.setattr("sys.argv", ["check_report_numbers.py"])
+
+    assert checker.main() == 0
+
+
+def test_an_exemption_no_document_quotes_any_more_fails(
+        artefacts: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """The permission outlived the sentence that earned it.
+
+    Left in place it excuses the next number that happens to equal 7.29, with a
+    reason describing an image size nobody mentions.
+    """
+    _document(artefacts, "The pipeline reaches 0.7946 Recall@1.", monkeypatch,
+              known={"7.29": "the image size before the CPU-only torch change"})
+    monkeypatch.setattr("sys.argv", ["check_report_numbers.py"])
+
+    assert checker.main() == 1
+    assert "7.29" in capsys.readouterr().out
+
+
+def test_a_live_exemption_does_not_carry_a_dead_one(
+        artefacts: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """One exemption still in use must not vouch for the rest of the table."""
+    _document(artefacts, "Built on Python 3.11.", monkeypatch,
+              known={"3.11": "Python version", "7.29": "a superseded image size"})
+    monkeypatch.setattr("sys.argv", ["check_report_numbers.py"])
+
+    assert checker.main() == 1
+
+
+def test_dead_exemptions_reports_only_the_unquoted(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(checker, "KNOWN",
+                        {"3.11": "live", "7.29": "dead", "1.209": "live"})
+
+    assert checker.dead_exemptions({"3.11", "1.209", "0.7946"}) == ["7.29"]

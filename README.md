@@ -5,7 +5,7 @@
 [![CI](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml)
 [![Benchmark](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
-![Tests](https://img.shields.io/badge/tests-170%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-174%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-79%25-green)
 ![Ruff](https://img.shields.io/badge/lint-ruff-261230)
 ![mypy](https://img.shields.io/badge/types-mypy%20clean-blue)
@@ -77,12 +77,12 @@ Both indexes are built from **the same chunk list in one pass** — if they drif
 
 | Configuration | R@1 | R@3 | R@5 | R@10 | MRR | nDCG@5 | mean ms |
 |---|---|---|---|---|---|---|---|
-| Dense only | 0.5853 | 0.8256 | 0.8953 | 0.9302 | 0.7740 | 0.7869 | 15.61 |
-| BM25 only | 0.6434 | 0.8023 | 0.8023 | 0.8023 | 0.7597 | 0.7660 | **0.74** |
-| Hybrid (RRF) | 0.6434 | 0.8023 | 0.8488 | **1.0000** | 0.7910 | 0.7862 | 15.91 |
-| **Hybrid + Reranker** | **0.7946** | **0.8953** | 0.9070 | **1.0000** | **0.9085** | **0.8937** | 693.19 |
+| Dense only | 0.5853 | 0.8256 | 0.8953 | 0.9302 | 0.7740 | 0.7869 | 15.95 |
+| BM25 only | 0.6434 | 0.8023 | 0.8023 | 0.8023 | 0.7597 | 0.7660 | **0.75** |
+| Hybrid (RRF) | 0.6434 | 0.8023 | 0.8488 | **1.0000** | 0.7910 | 0.7862 | 15.97 |
+| **Hybrid + Reranker** | **0.7946** | **0.8953** | 0.9070 | **1.0000** | **0.9085** | **0.8937** | 693.91 |
 
-Hybrid + Reranker leads every quality column except Recall@5, and costs **nearly three orders of magnitude more per query than BM25** (693.19 ms against 0.74 ms). Reranking, not retrieval, is the request.
+Hybrid + Reranker leads every quality column except Recall@5, and costs **nearly three orders of magnitude more per query than BM25** (693.91 ms against 0.75 ms). Reranking, not retrieval, is the request.
 
 Two columns are worth stopping on. **BM25 recall does not move past rank 3** — 0.8023 at R@3, R@5 and R@10 alike: it finds the chunk in the first three or it never finds it, which is what a lexical matcher does when the words are not there. And **both fused configurations reach 1.0000 at R@10**, so everything the corpus can answer is inside ten candidates; from there the job is entirely ranking, which is exactly the job the reranker does.
 
@@ -323,7 +323,7 @@ pip install -r requirements-dev.txt
 
 ruff check .    # lint and import order
 mypy            # 71 source files, clean
-pytest          # 170 tests, no network and no API key
+pytest          # 174 tests, no network and no API key
 ```
 
 `mypy` runs over `app/`, `scripts/` and `frontend/` and reports no issues, which is what
@@ -355,7 +355,7 @@ Two workflows run per pull request:
 2. **Generation is not measured with a real LLM.** CI has no key, so those metrics describe sentence selection.
 3. **The abstention threshold is tuned on one corpus** and over-refuses 34.9% of answerable questions.
 4. **Token counts are a `chars/4` heuristic**, not a real tokenizer, so chunk sizes and context budgets are approximate.
-5. **Reranking dominates latency** — 693.19 ms per query against BM25's 0.74 ms, and CI-runner timings vary about twofold run to run, so only the order of magnitude is meaningful.
+5. **Reranking dominates latency** — 693.91 ms per query against BM25's 0.75 ms, and CI-runner timings vary about twofold run to run, so only the order of magnitude is meaningful.
 6. **The image is large** — torch dominates it. It was 7.29 GB, because torch arrives as a dependency of sentence-transformers and the Linux wheel on PyPI is the CUDA build, for a container with no GPU. The Dockerfile now takes the `+cpu` build from PyTorch's own index, and CI asserts both halves of that: the installed torch must be a `+cpu` version, and the API image must stay under a 4 GiB ceiling. The exact size is printed by every Docker job.
 7. **Indexing is a full rebuild**, not an incremental upsert — correct at this size, wrong at scale.
 
@@ -372,7 +372,7 @@ Two workflows run per pull request:
 | [`app/evaluation/`](enterprise-hybrid-rag/app/evaluation) | Dataset schema, resolver, metrics, experiment runner |
 | [`app/services/`](enterprise-hybrid-rag/app/services) | RAG pipeline, abstention gate, document lifecycle |
 | [`scripts/`](enterprise-hybrid-rag/scripts) | Ingest, evaluate, benchmark, corpus-scale experiment |
-| [`tests/`](enterprise-hybrid-rag/tests) | 170 unit and integration tests |
+| [`tests/`](enterprise-hybrid-rag/tests) | 174 unit and integration tests |
 | [`HANDOFF.md`](enterprise-hybrid-rag/HANDOFF.md) | The engineering spec: interface contracts, status by phase, and what is still open |
 
 **[Full technical write-up →](enterprise-hybrid-rag/README.md)** — evaluation methodology, why each decision was made, and the complete results.

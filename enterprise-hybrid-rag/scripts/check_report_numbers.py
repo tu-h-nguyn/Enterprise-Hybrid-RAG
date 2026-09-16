@@ -34,6 +34,10 @@ Some figures legitimately do not come from an artefact: a Python version, a
 measurement explicitly labelled as historical, an example payload captured under
 an earlier default. Those live in ``KNOWN`` with the reason attached, so that
 "unexplained" means unexplained rather than "not yet excused".
+
+``KNOWN`` is checked in the other direction too: an exemption no document quotes
+any more is deleted rather than kept, because a permission outliving the sentence
+that earned it is how the next unrelated number gets waved through.
 """
 
 from __future__ import annotations
@@ -62,20 +66,8 @@ COUNTED = (*DOCUMENTS, PROJECT_ROOT / "HANDOFF.md")
 KNOWN: dict[str, str] = {
     "3.11": "Python version",
     "7.29": "the image size before the CPU-only torch change, labelled as the before",
-    "2.4": "a LaTeX geometry margin",
-    "2.8": "a LaTeX geometry margin",
-    "0.4": "a LaTeX rule width",
-    "0.7": "a LaTeX rule width",
-    "0.6": "a LaTeX title spacing",
-    "0.8": "a LaTeX title spacing",
-    "1.0": "a LaTeX spacing value",
     "0.15": "a LaTeX spacing value",
-    "1.1": "a LaTeX spacing value",
-    "1.2": "a LaTeX list indent",
-    "1.4": "a LaTeX list indent",
     "0.86": "a LaTeX minipage width",
-    "2.0": "a LaTeX spacing value",
-    "2.5": "a LaTeX spacing value",
     "1.209": "mean gold chunks per question, computed from the dataset labels",
     "0.9362": "example API payload, captured at the 500-token default",
     "1.49": "example API payload, captured at the 500-token default",
@@ -205,6 +197,20 @@ def artefact_values() -> tuple[set[str], set[float]]:
     return values, timings
 
 
+def dead_exemptions(quoted: set[str]) -> list[str]:
+    """Exemptions no document quotes any more.
+
+    An exemption is a standing permission to print a number that traces to
+    nothing. Once the prose that needed it is gone the permission stays, and the
+    next number that happens to collide with it is waved through with a reason
+    that has nothing to do with it. That is the same shape as the --allow-drift
+    bug this repository already paid for: a check that keeps reporting success
+    while the thing it guards has moved out from under it. So a stale exemption
+    fails the gate, and the fix is to delete the line.
+    """
+    return sorted(value for value in KNOWN if value not in quoted)
+
+
 def _is_a_known_timing(number: str, timings: set[float]) -> bool:
     value = float(number)
     return any(abs(value - timing) <= LATENCY_TOLERANCE * max(timing, 1e-9)
@@ -225,6 +231,7 @@ def main() -> int:
 
     values, timings = artefact_values()
     failures = 0
+    quoted: set[str] = set()
     for document in DOCUMENTS:
         if not document.exists():
             print(f"{document}: missing", file=sys.stderr)
@@ -232,6 +239,7 @@ def main() -> int:
             continue
         text = document.read_text(encoding="utf-8")
         numbers = sorted(set(NUMBER_RE.findall(text)))
+        quoted.update(numbers)
         timed = set(TIMED_RE.findall(text))
         unexplained = [n for n in numbers
                        if n not in values and n not in KNOWN
@@ -242,6 +250,13 @@ def main() -> int:
         for number in unexplained:
             print(f"    {number}")
         failures += len(unexplained)
+
+    stale = dead_exemptions(quoted)
+    if stale:
+        print("\nExemptions no document quotes any more; delete them:")
+        for value in stale:
+            print(f"    {value:<10} {KNOWN[value]}")
+        failures += len(stale)
 
     counts: dict[str, set[str]] = {}
     for document in COUNTED:
