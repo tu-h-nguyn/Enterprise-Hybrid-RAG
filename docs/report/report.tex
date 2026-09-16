@@ -728,7 +728,7 @@ update.
 
 \begin{itemize}[leftmargin=1.2em,itemsep=3pt]
   \item \textbf{Lint, types and tests} --- \code{ruff}, \code{mypy} over
-        \code{app/}, \code{scripts/} and \code{frontend/}, and 151 tests behind a
+        \code{app/}, \code{scripts/} and \code{frontend/}, and 170 tests behind a
         coverage floor that fails the build if it drops.
   \item \textbf{A blocking dataset audit.} Evaluation labels are resolved against
         freshly ingested chunks; if any label stops resolving, the build fails.
@@ -867,7 +867,7 @@ Each of these bounds how far the numbers above generalise.
 \code{app/services/}   & RAG pipeline, abstention gate, document lifecycle \\
 \code{frontend/}       & Streamlit interface and the in-process API starter \\
 \code{scripts/}        & Ingest, evaluate, benchmark, corpus-scale experiment \\
-\code{tests/}          & 151 unit and integration tests \\
+\code{tests/}          & 170 unit and integration tests \\
 \code{data/evaluation/}& The labelled dataset and every committed result artefact \\
 \code{HANDOFF.md}      & Interface contracts, status by phase, and what is open \\
 \bottomrule

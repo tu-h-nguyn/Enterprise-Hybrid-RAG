@@ -10,6 +10,12 @@ check. This script is the mechanical part of the answer: it collects every value
 in ``data/evaluation/*.json`` — including the differences the prose computes
 between them — and reports any number in a document that does not appear there.
 
+The test count is checked differently, because it does not live in an artefact.
+It appears in a badge, in a command comment, in a repository map, in the handover
+document and in the report, and it has drifted between them more than once. The
+check is that they agree with each other; what the true number is, only
+``pytest`` can say.
+
 Exit codes:
     0  every number is accounted for
     1  a number could not be traced (they are printed with their file)
@@ -49,6 +55,9 @@ DOCUMENTS = (
     REPO_ROOT / "docs" / "report" / "report.tex",
 )
 
+#: Documents that quote the test count but are not number-checked otherwise.
+COUNTED = (*DOCUMENTS, PROJECT_ROOT / "HANDOFF.md")
+
 #: Numbers that are not metrics, with why each one is allowed to be here.
 KNOWN: dict[str, str] = {
     "3.11": "Python version",
@@ -82,6 +91,15 @@ KNOWN: dict[str, str] = {
 }
 
 NUMBER_RE = re.compile(r"\d+\.\d{2,4}")
+
+#: Every way this repository writes its test count. They must all agree.
+TEST_COUNT_RES = (
+    re.compile(r"badge/tests-(\d+)%20passing"),
+    re.compile(r"(\d+) tests?, no network"),
+    re.compile(r"(\d+) unit and integration tests"),
+    re.compile(r"(\d+) tests behind a"),
+    re.compile(r"done — (\d+) pass"),
+)
 
 #: A number the document itself labels with a time unit: "699.95 ms",
 #: "699.95\,ms", "224.18 s", "3.7 min". Only these get the tolerance.
@@ -222,6 +240,25 @@ def main() -> int:
         for number in unexplained:
             print(f"    {number}")
         failures += len(unexplained)
+
+    counts: dict[str, set[str]] = {}
+    for document in COUNTED:
+        if not document.exists():
+            continue
+        text = document.read_text(encoding="utf-8")
+        found = {m for pattern in TEST_COUNT_RES for m in pattern.findall(text)}
+        if found:
+            counts[str(document.relative_to(REPO_ROOT))] = found
+
+    distinct = {value for values in counts.values() for value in values}
+    if len(distinct) > 1:
+        print("\nThe test count disagrees between documents:")
+        for name, values in sorted(counts.items()):
+            print(f"    {name:<40} {', '.join(sorted(values))}")
+        failures += 1
+    elif distinct:
+        print(f"\ntest count: {distinct.pop()}, consistent across "
+              f"{len(counts)} document(s)")
 
     if failures:
         print(f"\n{failures} number(s) do not trace to a committed artefact.",

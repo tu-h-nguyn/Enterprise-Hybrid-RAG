@@ -32,7 +32,7 @@ directory, which is the reason this is the copy that survived.
 | 14 | `app/evaluation/experiments.py` + ablation runner | **done, runs** |
 | 15 | FastAPI app (`/health`, `/documents*`, `/query`) | done, **smoke-tested** |
 | 16 | Streamlit UI | **done, driven in a browser** |
-| 17 | Tests (`tests/unit`, `tests/integration`) | **done — 168 pass** |
+| 17 | Tests (`tests/unit`, `tests/integration`) | **done — 170 pass** |
 | 18 | Observability (JSON logs, `Stopwatch`, `QueryTrace`) | done, **asserted in tests** |
 | 19 | Dockerfile / docker-compose | **done, built and served in CI** |
 | 20 | README | **done, numbers measured on neural backends** |

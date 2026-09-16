@@ -34,9 +34,15 @@ def artefacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 def _document(tmp_path: Path, text: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Point the checker at one throwaway document and nothing else.
+
+    COUNTED is patched too: it otherwise still names the real READMEs, and a
+    test would quietly read the repository it is supposed to be isolated from.
+    """
     path = tmp_path / "DOC.md"
     path.write_text(text, encoding="utf-8")
     monkeypatch.setattr(checker, "DOCUMENTS", (path,))
+    monkeypatch.setattr(checker, "COUNTED", (path,))
     monkeypatch.setattr(checker, "REPO_ROOT", tmp_path)
 
 
@@ -155,3 +161,39 @@ def test_a_metric_is_not_excused_by_a_timing_of_the_same_size(
     monkeypatch.setattr("sys.argv", ["check_report_numbers.py"])
 
     assert checker.main() == 1
+
+
+# -------------------------------------------------------------- test counts
+def test_a_test_count_that_disagrees_between_documents_fails(
+        artefacts: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The drift this catches happened five times in one day.
+
+    The count appears in a badge, a command comment, a repository map, the
+    handover document and the report. Nothing made them agree.
+    """
+    badge = artefacts / "A.md"
+    badge.write_text("![Tests](https://img.shields.io/badge/tests-168%20passing-green)",
+                     encoding="utf-8")
+    prose = artefacts / "B.md"
+    prose.write_text("| `tests/` | 151 unit and integration tests |", encoding="utf-8")
+    monkeypatch.setattr(checker, "DOCUMENTS", (badge, prose))
+    monkeypatch.setattr(checker, "COUNTED", (badge, prose))
+    monkeypatch.setattr(checker, "REPO_ROOT", artefacts)
+    monkeypatch.setattr("sys.argv", ["check_report_numbers.py"])
+
+    assert checker.main() == 1
+
+
+def test_agreeing_test_counts_pass(artefacts: Path,
+                                   monkeypatch: pytest.MonkeyPatch) -> None:
+    badge = artefacts / "A.md"
+    badge.write_text("![Tests](https://img.shields.io/badge/tests-168%20passing-green)",
+                     encoding="utf-8")
+    prose = artefacts / "B.md"
+    prose.write_text("| `tests/` | 168 unit and integration tests |", encoding="utf-8")
+    monkeypatch.setattr(checker, "DOCUMENTS", (badge, prose))
+    monkeypatch.setattr(checker, "COUNTED", (badge, prose))
+    monkeypatch.setattr(checker, "REPO_ROOT", artefacts)
+    monkeypatch.setattr("sys.argv", ["check_report_numbers.py"])
+
+    assert checker.main() == 0
