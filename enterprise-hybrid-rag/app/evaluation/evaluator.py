@@ -40,7 +40,6 @@ DEFAULT_CONFIGS: tuple[RetrievalConfig, ...] = (
     RetrievalConfig("Hybrid + Reranker", "hybrid", True),
 )
 
-
 @dataclass
 class RetrievalRunResult:
     config: RetrievalConfig

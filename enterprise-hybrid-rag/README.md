@@ -170,12 +170,12 @@ Reproduce with `python scripts/benchmark.py`, or read `data/evaluation/report.md
 
 | Configuration | R@1 | R@3 | R@5 | R@10 | MRR | nDCG@5 | P@5 | mean ms | p95 ms |
 |---|---|---|---|---|---|---|---|---|---|
-| Dense only | 0.5853 | 0.8256 | 0.8953 | 0.9302 | 0.7740 | 0.7869 | 0.2186 | 16.58 | 21.26 |
-| BM25 only | 0.6434 | 0.8023 | 0.8023 | 0.8023 | 0.7597 | 0.7660 | 0.2000 | **0.78** | **0.92** |
-| Hybrid (RRF) | 0.6434 | 0.8023 | 0.8488 | **1.0000** | 0.7910 | 0.7862 | 0.2093 | 17.04 | 18.41 |
-| **Hybrid + Reranker** | **0.7946** | **0.8953** | 0.9070 | **1.0000** | **0.9085** | **0.8937** | **0.2233** | 699.95 | 781.92 |
+| Dense only | 0.5853 | 0.8256 | 0.8953 | 0.9302 | 0.7740 | 0.7869 | 0.2186 | 15.95 | 18.79 |
+| BM25 only | 0.6434 | 0.8023 | 0.8023 | 0.8023 | 0.7597 | 0.7660 | 0.2000 | **0.75** | **0.84** |
+| Hybrid (RRF) | 0.6434 | 0.8023 | 0.8488 | **1.0000** | 0.7910 | 0.7862 | 0.2093 | 15.97 | 17.33 |
+| **Hybrid + Reranker** | **0.7946** | **0.8953** | 0.9070 | **1.0000** | **0.9085** | **0.8937** | **0.2233** | 693.91 | 756.02 |
 
-Hybrid + Reranker leads every quality column except Recall@5, and costs **nearly three orders of magnitude more per query than BM25** (699.95 ms against 0.78 ms). Reranking, not retrieval, is where the request time goes.
+Hybrid + Reranker leads every quality column except Recall@5, and costs **nearly three orders of magnitude more per query than BM25** (693.91 ms against 0.75 ms). Reranking, not retrieval, is where the request time goes.
 
 Two columns say more than the headline. **BM25 recall is identical at R@3, R@5 and R@10** (0.8023): it finds the chunk in the first three results or it never finds it, which is what a lexical matcher does when the query's words are not in the text. And **both fused configurations reach 1.0000 at R@10** — everything this corpus can answer is inside ten candidates, so from there the problem is entirely ranking, which is what the reranker is for. That is also why the reranker can reach 0.7946 at R@1 without a better retriever underneath it.
 
@@ -208,6 +208,12 @@ The explanation is entirely in the per-type breakdown below: the TF-IDF fallback
 | BM25 only | 0.8571 | **1.0000** | 0.3810 | 0.1111 | 0.8333 |
 | Hybrid (RRF) | **1.0000** | 0.5714 | 0.3810 | 0.2222 | 0.8333 |
 | **Hybrid + Reranker** | **1.0000** | **1.0000** | **0.4524** | **0.4444** | **1.0000** |
+| *highest achievable* | *1.0000* | *1.0000* | ***0.4524*** | *1.0000* | *1.0000* |
+
+The last row is `max_recall@1`, computed from the gold-set sizes rather than
+assumed to be 1.0. Across all 43 answerable questions the achievable Recall@1 is
+**0.9109**, so the reranked pipeline's 0.7946 is 87.2% of what any retriever
+could reach on this dataset.
 
 ### MRR by question type
 
@@ -226,7 +232,7 @@ Four findings, including the ones that are inconvenient:
 
 3. **Paraphrase remains the weakest retrieval story.** The pipeline ties plain dense at 0.4444 R@1, but dense still has the better MRR (0.6056 against 0.5626): the cross-encoder is itself trained on lexical-ish relevance and sometimes demotes a semantically right chunk that shares no words with the query. Better than the fallback's 0.1111, and far from solved.
 
-4. **`multi_step` is the weakest answerable category overall** (0.4524 R@1 — though a perfect 1.0000 MRR, because the *first* relevant chunk is always ranked first and what is missing is the second one). These need evidence from two or more documents, and nothing in this pipeline decomposes a question or retrieves iteratively. No amount of reranking fixes it. That is the honest next problem.
+4. **`multi_step` is not the weakest category. It is saturated, and this README said otherwise for a long time.** Recall@k is bounded by `min(k, |relevant|) / |relevant|`. Every `multi_step` question here has two or three relevant chunks, so the ceiling for Recall@1 in that column is exactly 0.4524 — and the reranked pipeline scores exactly 0.4524, with Recall@5 of 1.0000 and MRR of 1.0000. Every relevant chunk is retrieved, one of them always at rank 1. There is nothing left to win there, and "nothing in this pipeline decomposes a question" was a true statement offered as the explanation for a number that did not need one. The evaluator now reports `max_recall@k` next to `recall@k`; the genuinely open category is `paraphrased`, at 0.4444 against a ceiling of 1.0000.
 
 ### Chunk-size ablation
 
@@ -263,14 +269,33 @@ long. **The default is now 256**, and the benchmark workflow runs 500 as the
 alternative against it, so the decision stays checkable rather than becoming
 folklore.
 
-What that costs is the Recall@5 column above, and it is worth being precise
-about why it is not decisive. Five chunks of 500 tokens hand the generator twice
-the text that five chunks of 256 do, so the larger sizes enter that metric with
-double the context budget. The metrics where a longer chunk is *structurally*
-advantaged are R@1 and MRR — a bigger chunk is a bigger target to hit — and 256
-wins those anyway. A like-for-like comparison at a fixed context budget,
-`top_k=10` at 256 against `top_k=5` at 500, is the follow-up this does not
-attempt.
+What that costs is the Recall@5 column above, and the reason it is not decisive
+used to be an argument: five chunks of 500 tokens hand the generator twice the
+text that five chunks of 256 do, so the larger sizes enter that metric with
+double the context budget. The sweep now records `mean_chunk_tokens`, so the
+argument is a measurement. Pricing each depth in the context it costs, on the
+largest corpus, production configuration, exhaustive search:
+
+| Context tokens | Chunk size | k | Recall@k |
+|---:|---:|---:|---:|
+| 187 | **256** | 1 | **0.7248** |
+| 344 | 500 | 1 | 0.6318 |
+| 561 | **256** | 3 | **0.8062** |
+| 935 | **256** | 5 | **0.8062** |
+| 1030 | 500 | 3 | 0.7984 |
+| 1718 | 500 | 5 | 0.8566 |
+| 1870 | 256 | 10 | 0.8411 |
+| 3435 | 500 | 10 | 0.8682 |
+
+Read as a curve, the answer is not close below about 1.5k tokens. **256 reaches
+0.8062 on 561 tokens; 500 does not reach it until 1718, three times the
+context.** At every budget the shipped pipeline actually uses — five chunks, 935
+tokens at 256 — nothing at 500 matches it for less text.
+
+Where 500 wins is above that: 0.8566 at 1718 tokens against 256's 0.8411 at
+1870, and 0.8682 at 3435. So the fair statement is not "500's Recall@5 advantage
+is an artefact" but something narrower and checkable: *it requires roughly twice
+the context the pipeline passes*. Anyone willing to spend that should use 500.
 
 ### Corpus-scale experiment
 
@@ -443,7 +468,7 @@ Produced by the **extractive** backend — sentence selection, not generation. T
 | mean citations per answer | 0.8372 |
 | **over_refusal_rate** (answerable questions refused) | **0.3488** |
 | **correct_refusal_rate** (unanswerable questions refused) | **0.8571** |
-| mean latency | 698.30 ms |
+| mean latency | 693.08 ms |
 
 The gate correctly refuses **6 of 7** unanswerable questions and also refuses **15 of 43** answerable ones. Both rates are unchanged from the fallback run, which is itself informative: the gate's behaviour here is dominated by the extractive backend's exact-token matching rather than by retrieval quality, so improving the encoder did not move it. Measuring this properly needs a real LLM — point `LLM_BASE_URL` at a local Ollama server and re-run `scripts/evaluate.py --generation --judge`.
 
@@ -686,7 +711,7 @@ Stated plainly, because each one bounds how far the numbers above generalise.
    index to 8548 chunks and shows the ranking holds, but it grows it with
    generated documents; the labelled questions are still 50, and no part of this
    has been validated against a real enterprise corpus.
-4. **Reranking dominates latency** — 699.95 ms per query against 0.78 ms for
+4. **Reranking dominates latency** — 693.91 ms per query against 0.75 ms for
    BM25 alone. Any deployment has to decide whether that precision is worth
    nearly three orders of magnitude of latency, or whether to rerank only when
    the fusion margin is narrow. CI-runner timings vary about twofold between

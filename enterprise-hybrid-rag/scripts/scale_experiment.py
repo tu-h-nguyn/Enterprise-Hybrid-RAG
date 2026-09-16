@@ -257,6 +257,11 @@ def run_one_size(settings: Settings, dataset: EvalDataset, real_paths: list[Path
         "n_real_chunks": len(real_chunks),
         "n_distractor_chunks": len(distractor_chunks),
         "n_gold_chunks": len({cid for ids in gold.values() for cid in ids}),
+        # Needed to compare chunk sizes at a matched *context budget* rather
+        # than at a matched k: five chunks of 500 tokens are not five chunks of
+        # 256 tokens, and Recall@5 across chunk sizes silently compares
+        # different amounts of text.
+        "mean_chunk_tokens": round(sum(c.n_tokens for c in chunks) / len(chunks), 1),
         "gold_share_of_corpus": round(
             len({cid for ids in gold.values() for cid in ids}) / len(chunks), 6),
         "index_build_seconds": build_seconds,
@@ -368,6 +373,22 @@ def render_report(payload: dict) -> str:
             lines.append(f"| {row['n_chunks']} | {row['label']} | {row['exact']:.4f} | "
                          f"{row['approximate']:.4f} | {row['lost']:+.4f} |")
 
+    budget_rows = _budget_rows(payload)
+    if budget_rows:
+        lines += ["", "## Recall per token of context", "",
+                  "Recall@k across chunk sizes compares different amounts of text: k chunks",
+                  "of 500 tokens is not k chunks of 256. This table prices each depth in the",
+                  "context it actually costs — mean chunk tokens times k — for the production",
+                  "configuration on the largest corpus, under exhaustive search.", "",
+                  "| Chunk size | k | Context tokens | Recall@k |",
+                  "|---:|---:|---:|---:|"]
+        for row in budget_rows:
+            lines.append(f"| {row['chunk_size_tokens']} | {row['k']} | {row['tokens']} "
+                         f"| {row['recall']:.4f} |")
+        lines += ["",
+                  "Read it as a curve rather than a table: the question is which chunk size "
+                  "reaches a given recall for the least context.", ""]
+
     chunk_rows = _chunk_size_rows(payload)
     if chunk_rows:
         configured = payload["chunking"]["configured_chunk_size_tokens"]
@@ -411,6 +432,43 @@ def render_report(payload: dict) -> str:
               "ones (near-duplicate revisions of the same policy).",
               ""]
     return "\n".join(lines)
+
+
+def _budget_rows(payload: dict) -> list[dict]:
+    """Recall at each k, priced in the context tokens that k actually costs.
+
+    Only the largest corpus, only exhaustive search, only the production
+    configuration: this table exists to answer one question, and adding rows to
+    it would bury the answer.
+    """
+    label = "Hybrid + Reranker"
+    chunk_sizes = sorted({row["chunk_size_tokens"] for row in payload["sizes"]})
+    if len(chunk_sizes) < 2:
+        return []
+
+    rows: list[dict] = []
+    for chunk_size in chunk_sizes:
+        candidates = [r for r in payload["sizes"]
+                      if r["chunk_size_tokens"] == chunk_size
+                      and r["vector_backend"] == "numpy"
+                      and "mean_chunk_tokens" in r]
+        if not candidates:
+            continue
+        biggest = max(candidates, key=lambda r: r["n_distractor_documents"])
+        config = next((c for c in biggest["configs"] if c["label"] == label), None)
+        if config is None:
+            continue
+        for k in payload.get("ks", []):
+            metric = config["metrics"].get(f"recall@{k}")
+            if metric is None:
+                continue
+            rows.append({
+                "chunk_size_tokens": chunk_size,
+                "k": k,
+                "tokens": round(biggest["mean_chunk_tokens"] * k),
+                "recall": metric,
+            })
+    return sorted(rows, key=lambda r: (r["tokens"], r["chunk_size_tokens"]))
 
 
 def _chunk_size_rows(payload: dict) -> dict | None:

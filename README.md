@@ -5,7 +5,7 @@
 [![CI](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/ci.yml)
 [![Benchmark](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml/badge.svg)](https://github.com/tu-h-nguyn/Enterprise-Hybrid-RAG/actions/workflows/benchmark.yml)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
-![Tests](https://img.shields.io/badge/tests-151%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-174%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-79%25-green)
 ![Ruff](https://img.shields.io/badge/lint-ruff-261230)
 ![mypy](https://img.shields.io/badge/types-mypy%20clean-blue)
@@ -77,12 +77,12 @@ Both indexes are built from **the same chunk list in one pass** — if they drif
 
 | Configuration | R@1 | R@3 | R@5 | R@10 | MRR | nDCG@5 | mean ms |
 |---|---|---|---|---|---|---|---|
-| Dense only | 0.5853 | 0.8256 | 0.8953 | 0.9302 | 0.7740 | 0.7869 | 16.58 |
-| BM25 only | 0.6434 | 0.8023 | 0.8023 | 0.8023 | 0.7597 | 0.7660 | **0.78** |
-| Hybrid (RRF) | 0.6434 | 0.8023 | 0.8488 | **1.0000** | 0.7910 | 0.7862 | 17.04 |
-| **Hybrid + Reranker** | **0.7946** | **0.8953** | 0.9070 | **1.0000** | **0.9085** | **0.8937** | 699.95 |
+| Dense only | 0.5853 | 0.8256 | 0.8953 | 0.9302 | 0.7740 | 0.7869 | 15.95 |
+| BM25 only | 0.6434 | 0.8023 | 0.8023 | 0.8023 | 0.7597 | 0.7660 | **0.75** |
+| Hybrid (RRF) | 0.6434 | 0.8023 | 0.8488 | **1.0000** | 0.7910 | 0.7862 | 15.97 |
+| **Hybrid + Reranker** | **0.7946** | **0.8953** | 0.9070 | **1.0000** | **0.9085** | **0.8937** | 693.91 |
 
-Hybrid + Reranker leads every quality column except Recall@5, and costs **nearly three orders of magnitude more per query than BM25** (699.95 ms against 0.78 ms). Reranking, not retrieval, is the request.
+Hybrid + Reranker leads every quality column except Recall@5, and costs **nearly three orders of magnitude more per query than BM25** (693.91 ms against 0.75 ms). Reranking, not retrieval, is the request.
 
 Two columns are worth stopping on. **BM25 recall does not move past rank 3** — 0.8023 at R@3, R@5 and R@10 alike: it finds the chunk in the first three or it never finds it, which is what a lexical matcher does when the words are not there. And **both fused configurations reach 1.0000 at R@10**, so everything the corpus can answer is inside ten candidates; from there the job is entirely ranking, which is exactly the job the reranker does.
 
@@ -96,10 +96,13 @@ Treat the timings as an order of magnitude, not a figure: the same pipeline over
 | BM25 only | 0.8571 | **1.0000** | 0.3810 | 0.1111 | 0.8333 |
 | Hybrid (RRF) | **1.0000** | 0.5714 | 0.3810 | 0.2222 | 0.8333 |
 | **Hybrid + Reranker** | **1.0000** | **1.0000** | **0.4524** | **0.4444** | **1.0000** |
+| *highest achievable* | *1.0000* | *1.0000* | ***0.4524*** | *1.0000* | *1.0000* |
 
-The bottom row is not the maximum of the rows above it by accident, but it is close to it everywhere: the reranked pipeline matches the best single retriever on keyword, paraphrased and multi_step, and beats every one of them on factual and terminology.
+The bottom row is the point. **Recall@1 is bounded by `min(1, |relevant|) / |relevant|`**, so a question with two relevant chunks caps at 0.5000 and one with three caps at 0.3333. Every `multi_step` question here has two or three, which puts the ceiling for that column at exactly 0.4524 — and the reranked pipeline scores exactly 0.4524. It is not the weakest category. **It is saturated**: its Recall@5 is 1.0000 and its MRR is 1.0000, meaning every relevant chunk for every multi-step question is retrieved, with one of them always at rank 1.
 
-`multi_step` is the weakest answerable category (0.4524) — questions needing evidence from two or more documents, where no reordering of a single-chunk ranking can help. That is the honest next problem, not a rounding error.
+This README said the opposite for a long time — that `multi_step` was "the weakest answerable category" and "the honest next problem". That was a misreading of a bounded metric against an imagined 1.0, repeated in four documents. The evaluator now reports `max_recall@k` alongside `recall@k` so the mistake is not available to make again.
+
+Against the same bound, the overall picture changes too: the achievable Recall@1 across all 43 answerable questions is **0.9109**, not 1.0, so the reranked pipeline's 0.7946 is **87.2% of what any retriever could reach** — and the genuinely open category is `paraphrased` at 0.4444 against a ceiling of 1.0000.
 
 ### The chunk size was chosen by measurement, and then changed
 
@@ -124,10 +127,27 @@ scores passages half as long. The default moved to 256 on that evidence, and the
 benchmark workflow now measures 500 against it so the decision stays checkable.
 
 The cost is in the table above and is not hidden: 500 and 800 both beat 256 at
-Recall@5. That comparison is not like-for-like across chunk sizes, though — five
-chunks of 500 tokens hand the generator twice the text that five chunks of 256
-do. The metrics where a longer chunk is structurally advantaged are R@1 and MRR,
-because a bigger chunk is a bigger target to hit, and 256 wins those anyway.
+Recall@5. But Recall@5 compares different amounts of text — five chunks of 500
+tokens are twice the context of five chunks of 256 — so that was an argument
+until it was measured. Pricing each depth in the context it actually costs, on
+the largest corpus:
+
+| Context tokens | Chunk size | k | Recall@k |
+|---:|---:|---:|---:|
+| 187 | **256** | 1 | **0.7248** |
+| 344 | 500 | 1 | 0.6318 |
+| 561 | **256** | 3 | **0.8062** |
+| 935 | **256** | 5 | **0.8062** |
+| 1030 | 500 | 3 | 0.7984 |
+| 1718 | 500 | 5 | 0.8566 |
+| 1870 | 256 | 10 | 0.8411 |
+
+**256 reaches 0.8062 on 561 tokens of context. 500 does not reach it until
+1718 — three times as much.** The shipped pipeline passes five chunks, which at
+256 tokens is 935 of context, and nothing at 500 matches it for less. 500 does
+win eventually: at roughly 1.8k tokens it scores 0.8566 against 256's 0.8411.
+That is the honest boundary — pay double the context and the larger chunk is
+better at depth.
 
 ### It still works when the corpus gets much bigger
 
@@ -302,8 +322,8 @@ LLM_API_KEY=ollama    # required non-empty; Ollama ignores the value
 pip install -r requirements-dev.txt
 
 ruff check .    # lint and import order
-mypy            # 70 source files, clean
-pytest          # 151 tests, no network and no API key
+mypy            # 71 source files, clean
+pytest          # 174 tests, no network and no API key
 ```
 
 `mypy` runs over `app/`, `scripts/` and `frontend/` and reports no issues, which is what
@@ -323,7 +343,7 @@ Unit tests cover the PDF loader against a PDF generated inside the test, chunker
 
 Two workflows run per pull request:
 
-- **CI** — `ruff`, `mypy`, tests with a 73% coverage floor, ingest, a **blocking evaluation-label audit**, and an API smoke test, on pinned offline backends so the job is deterministic. The audit is a real gate: it was verified by deliberately corrupting an answer span and confirming a non-zero exit.
+- **CI** — `ruff`, `mypy`, tests with a 73% coverage floor, ingest, a **blocking evaluation-label audit**, a check that **every number in both READMEs and the report traces to a committed artefact**, and an API smoke test, on pinned offline backends so the job is deterministic. The audit is a real gate: it was verified by deliberately corrupting an answer span and confirming a non-zero exit.
 - **Docker** — builds both image targets with the Actions layer cache, ingests inside the container, then starts it and queries the live API. Without the cache this job re-downloaded ~3 GB of wheels every run and took anywhere from 2 to 37 minutes.
 - **Benchmark** — the full suite on the neural backends. It compares what it just measured against the committed numbers on **quality metrics only**, since latency is wall-clock and moves every run. Identical output means the benchmark reproduced; it commits regenerated results only when a quality metric actually changed. Three independent runs on different runners agreed on all **698** compared values. The corpus-scale experiment runs as a second job in the same workflow and is held to the same standard, including an assertion that the embedder held at 384 dimensions at every corpus size before it is allowed to publish anything.
 
@@ -335,7 +355,7 @@ Two workflows run per pull request:
 2. **Generation is not measured with a real LLM.** CI has no key, so those metrics describe sentence selection.
 3. **The abstention threshold is tuned on one corpus** and over-refuses 34.9% of answerable questions.
 4. **Token counts are a `chars/4` heuristic**, not a real tokenizer, so chunk sizes and context budgets are approximate.
-5. **Reranking dominates latency** — 699.95 ms per query against BM25's 0.78 ms, and CI-runner timings vary about twofold run to run, so only the order of magnitude is meaningful.
+5. **Reranking dominates latency** — 693.91 ms per query against BM25's 0.75 ms, and CI-runner timings vary about twofold run to run, so only the order of magnitude is meaningful.
 6. **The image is large** — torch dominates it. It was 7.29 GB, because torch arrives as a dependency of sentence-transformers and the Linux wheel on PyPI is the CUDA build, for a container with no GPU. The Dockerfile now takes the `+cpu` build from PyTorch's own index, and CI asserts both halves of that: the installed torch must be a `+cpu` version, and the API image must stay under a 4 GiB ceiling. The exact size is printed by every Docker job.
 7. **Indexing is a full rebuild**, not an incremental upsert — correct at this size, wrong at scale.
 
@@ -352,7 +372,7 @@ Two workflows run per pull request:
 | [`app/evaluation/`](enterprise-hybrid-rag/app/evaluation) | Dataset schema, resolver, metrics, experiment runner |
 | [`app/services/`](enterprise-hybrid-rag/app/services) | RAG pipeline, abstention gate, document lifecycle |
 | [`scripts/`](enterprise-hybrid-rag/scripts) | Ingest, evaluate, benchmark, corpus-scale experiment |
-| [`tests/`](enterprise-hybrid-rag/tests) | 151 unit and integration tests |
+| [`tests/`](enterprise-hybrid-rag/tests) | 174 unit and integration tests |
 | [`HANDOFF.md`](enterprise-hybrid-rag/HANDOFF.md) | The engineering spec: interface contracts, status by phase, and what is still open |
 
 **[Full technical write-up →](enterprise-hybrid-rag/README.md)** — evaluation methodology, why each decision was made, and the complete results.

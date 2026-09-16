@@ -32,7 +32,7 @@ directory, which is the reason this is the copy that survived.
 | 14 | `app/evaluation/experiments.py` + ablation runner | **done, runs** |
 | 15 | FastAPI app (`/health`, `/documents*`, `/query`) | done, **smoke-tested** |
 | 16 | Streamlit UI | **done, driven in a browser** |
-| 17 | Tests (`tests/unit`, `tests/integration`) | **done — 151 pass** |
+| 17 | Tests (`tests/unit`, `tests/integration`) | **done — 174 pass** |
 | 18 | Observability (JSON logs, `Stopwatch`, `QueryTrace`) | done, **asserted in tests** |
 | 19 | Dockerfile / docker-compose | **done, built and served in CI** |
 | 20 | README | **done, numbers measured on neural backends** |
@@ -77,10 +77,12 @@ informative result in the project.
    answerable questions, and the rate did not move when the encoder improved or
    when the chunk size changed — so it is dominated by the extractive backend's
    exact-token matching, and should be re-tuned only after item 1.
-4. **`multi_step` is the weakest answerable category** (R@1 0.4524, against a
-   perfect 1.0000 MRR — the *first* relevant chunk is always ranked first and
-   what is missing is the second one). Nothing here decomposes a question or
-   retrieves iteratively, and no amount of reranking substitutes for that.
+4. **`paraphrased` is the weakest answerable category** (R@1 0.4444 against a
+   ceiling of 1.0000). `multi_step` used to be listed here at 0.4524 and it was
+   a misreading: Recall@1 is bounded by `min(1, |relevant|)/|relevant|`, every
+   multi-step question has two or three relevant chunks, and 0.4524 *is* that
+   bound. Its Recall@5 is 1.0000. The evaluator now reports `max_recall@k` so
+   the mistake is not available to make again.
 5. **Put the demo at a URL.** `frontend/embedded_api.py` makes the UI runnable in
    one process with no API to point at, which is what Streamlit Community Cloud
    and Hugging Face Spaces need. The remaining step needs an account, not code.
@@ -263,3 +265,14 @@ the numbers into the README.
 * Two copies of this file used to exist, at the repository root and here. They
   had already drifted. If you add a second copy of anything that claims to be a
   source of truth, expect the same.
+* **Second-hop retrieval was built and then removed.** `app/retrieval/second_hop.py`
+  did pseudo-relevance feedback — expand the query with the distinctive terms of
+  the first hop's top chunks, retrieve again, fuse both hops with RRF — to close
+  the `multi_step` gap. Computing the Recall@1 ceiling showed there was no gap,
+  and the neural run then showed the feature changed *nothing*: identical R@1,
+  R@5, MRR and every per-type value, for 18 ms more per query. It was deleted
+  rather than kept behind a flag. The reranker already reaches the ceiling
+  everywhere except `paraphrased`, and for a paraphrased miss the first hop's top
+  chunks are the wrong ones, so their vocabulary points further away rather than
+  closer. If you try query expansion again, that is the thing to beat: expansion
+  from a first hop that was already wrong.

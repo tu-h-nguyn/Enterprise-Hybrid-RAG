@@ -354,10 +354,10 @@ the shipped 256-token chunk size, 50 questions of which 43 are answerable.
 \toprule
 \textbf{Configuration} & \textbf{R@1} & \textbf{R@3} & \textbf{R@5} & \textbf{R@10} & \textbf{MRR} & \textbf{nDCG@5} & \textbf{ms} \\
 \midrule
-Dense only          & 0.5853 & 0.8256 & 0.8953 & 0.9302 & 0.7740 & 0.7869 & 16.58 \\
-BM25 only           & 0.6434 & 0.8023 & 0.8023 & 0.8023 & 0.7597 & 0.7660 & \textbf{0.78} \\
-Hybrid (RRF)        & 0.6434 & 0.8023 & 0.8488 & \textbf{1.0000} & 0.7910 & 0.7862 & 17.04 \\
-\textbf{Hybrid + Reranker} & \textbf{0.7946} & \textbf{0.8953} & 0.9070 & \textbf{1.0000} & \textbf{0.9085} & \textbf{0.8937} & 699.95 \\
+Dense only          & 0.5853 & 0.8256 & 0.8953 & 0.9302 & 0.7740 & 0.7869 & 15.95 \\
+BM25 only           & 0.6434 & 0.8023 & 0.8023 & 0.8023 & 0.7597 & 0.7660 & \textbf{0.75} \\
+Hybrid (RRF)        & 0.6434 & 0.8023 & 0.8488 & \textbf{1.0000} & 0.7910 & 0.7862 & 15.97 \\
+\textbf{Hybrid + Reranker} & \textbf{0.7946} & \textbf{0.8953} & 0.9070 & \textbf{1.0000} & \textbf{0.9085} & \textbf{0.8937} & 693.91 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -396,15 +396,17 @@ The explanation is entirely in the breakdown by question type.
 
 \begin{center}
 \small
-\begin{tabular}{@{}lrrrr@{}}
+\begin{tabular}{@{}lrrrrr@{}}
 \toprule
-\textbf{Recall@1} & \textbf{TF-IDF fallback} & \textbf{Dense (MiniLM)} & \textbf{BM25} & \textbf{Hybrid + Reranker} \\
+\textbf{Recall@1} & \textbf{TF-IDF} & \textbf{Dense (MiniLM)} & \textbf{BM25} & \textbf{Hybrid + Rerank} & \textit{ceiling} \\
 \midrule
-\code{keyword}     & \textbf{1.0000} & 0.4286 & \textbf{1.0000} & \textbf{1.0000} \\
-\code{paraphrased} & 0.1111 & \textbf{0.4444} & 0.1111 & \textbf{0.4444} \\
-\code{terminology} & 0.8333 & 0.3333 & 0.8333 & \textbf{1.0000} \\
-\code{factual}     & 0.8571 & 0.9286 & 0.8571 & \textbf{1.0000} \\
-\code{multi\_step} & 0.4524 & 0.4524 & 0.3810 & 0.4524 \\
+\code{keyword}     & \textbf{1.0000} & 0.4286 & \textbf{1.0000} & \textbf{1.0000} & \textit{1.0000} \\
+\code{paraphrased} & 0.1111 & \textbf{0.4444} & 0.1111 & \textbf{0.4444} & \textit{1.0000} \\
+\code{terminology} & 0.8333 & 0.3333 & 0.8333 & \textbf{1.0000} & \textit{1.0000} \\
+\code{factual}     & 0.8571 & 0.9286 & 0.8571 & \textbf{1.0000} & \textit{1.0000} \\
+\code{multi\_step} & 0.4524 & 0.4524 & 0.3810 & \textbf{0.4524} & \textit{\textbf{0.4524}} \\
+\midrule
+\textbf{all answerable} & 0.6550 & 0.5853 & 0.6434 & \textbf{0.7946} & \textit{0.9109} \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -428,6 +430,33 @@ on the category each of them owns. Averaging two rankings that disagree lands
 between them. The cross-encoder, which reads query and chunk jointly rather than
 comparing two independently compressed vectors, is what turns a fused candidate
 list back into the best of both.
+
+\subsection{A metric read against the wrong ceiling}
+
+Recall@$k$ is bounded by $\min(k, |R|) / |R|$, where $R$ is the set of relevant
+chunks. A question with two relevant chunks cannot score above 0.5000 at $k=1$;
+one with three cannot exceed 0.3333. Every \code{multi\_step} question in this
+dataset has two or three, which puts the ceiling for that column at exactly
+0.4524.
+
+The reranked pipeline scores exactly 0.4524, with Recall@5 of 1.0000 and MRR of
+1.0000.
+
+\begin{finding}{The weakest-looking category was the most solved one}
+\code{multi\_step} is not the weakest answerable category. It is saturated ---
+every relevant chunk for every multi-step question is retrieved, with one of them
+always at rank 1. This project's own documentation called it ``the weakest
+answerable category'' and ``the honest next problem'' in four separate places,
+because 0.4524 was read against an imagined 1.0 instead of against the bound the
+labels impose. The evaluator now reports \code{max\_recall@k} beside
+\code{recall@k}, so the number cannot be misread the same way again.
+\end{finding}
+
+Correcting the bound changes the overall reading as well. Across all 43
+answerable questions the achievable Recall@1 is \textbf{0.9109}, not 1.0, so the
+reranked pipeline's 0.7946 is \textbf{87.2\%} of what any retriever could reach
+on this dataset. The genuinely open category is \code{paraphrased}, at 0.4444
+against a ceiling of 1.0000 --- and unlike \code{multi\_step}, that gap is real.
 
 \subsection{Does it survive a bigger corpus?}
 \label{sec:scale}
@@ -699,7 +728,7 @@ update.
 
 \begin{itemize}[leftmargin=1.2em,itemsep=3pt]
   \item \textbf{Lint, types and tests} --- \code{ruff}, \code{mypy} over
-        \code{app/}, \code{scripts/} and \code{frontend/}, and 151 tests behind a
+        \code{app/}, \code{scripts/} and \code{frontend/}, and 174 tests behind a
         coverage floor that fails the build if it drops.
   \item \textbf{A blocking dataset audit.} Evaluation labels are resolved against
         freshly ingested chunks; if any label stops resolving, the build fails.
@@ -789,17 +818,16 @@ Each of these bounds how far the numbers above generalise.
   \item \textbf{Token counts are a \code{chars/4} heuristic}, not a real
         tokenizer, so chunk sizes and context budgets are approximate and a real
         tokenizer would shift chunk boundaries.
-  \item \textbf{Reranking dominates latency} --- 699.95\,ms against BM25's
-        0.78\,ms. Any deployment must decide whether that precision is worth
+  \item \textbf{Reranking dominates latency} --- 693.91\,ms against BM25's
+        0.75\,ms. Any deployment must decide whether that precision is worth
         nearly three orders of magnitude, or whether to rerank only when the
         fusion margin is narrow.
   \item \textbf{Indexing is a full rebuild}, not an incremental upsert. Correct
         at this size, wrong at scale.
-  \item \textbf{\code{multi\_step} is the weakest answerable category} (0.4524
-        Recall@1, against a perfect 1.0000 MRR --- the \emph{first} relevant
-        chunk is always ranked first and what is missing is the second one).
-        Nothing here decomposes a question or retrieves iteratively, and no
-        amount of reranking substitutes for that.
+  \item \textbf{\code{paraphrased} is the weakest answerable category} (0.4444
+        Recall@1 against a ceiling of 1.0000). Vocabulary mismatch between
+        question and document is the one failure neither retriever handles well
+        and reranking only partly repairs.
 \end{enumerate}
 
 % ================================================================ 9
@@ -815,8 +843,8 @@ Each of these bounds how far the numbers above generalise.
         the one comparison the chunk-size decision did not control for.
   \item \textbf{Re-tune the abstention thresholds} once there is a real generator
         to tune them against.
-  \item \textbf{Attack \code{multi\_step}} with query decomposition or iterative
-        retrieval --- the only weak category that reranking provably cannot fix.
+  \item \textbf{Attack \code{paraphrased}} --- now that the recall ceiling is
+        computed, it is the only answerable category with real headroom.
   \item \textbf{Incremental indexing}, so a changed document does not require a
         full rebuild.
 \end{enumerate}
@@ -839,7 +867,7 @@ Each of these bounds how far the numbers above generalise.
 \code{app/services/}   & RAG pipeline, abstention gate, document lifecycle \\
 \code{frontend/}       & Streamlit interface and the in-process API starter \\
 \code{scripts/}        & Ingest, evaluate, benchmark, corpus-scale experiment \\
-\code{tests/}          & 151 unit and integration tests \\
+\code{tests/}          & 174 unit and integration tests \\
 \code{data/evaluation/}& The labelled dataset and every committed result artefact \\
 \code{HANDOFF.md}      & Interface contracts, status by phase, and what is open \\
 \bottomrule

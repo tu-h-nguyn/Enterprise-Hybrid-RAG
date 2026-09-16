@@ -1,6 +1,6 @@
 # Retrieval benchmark report
 
-Generated: `2026-09-15T13:15:59+00:00`  
+Generated: `2026-09-16T01:37:57+00:00`  
 Dataset: `northwind_demo` — 50 questions (43 answerable, 7 unanswerable)  
 Index: 22 documents, 77 chunks at `chunk_size_tokens=256` / `chunk_overlap_tokens=51`
 
@@ -34,10 +34,10 @@ Recall is computed over the answer-span ground truth resolved at evaluation time
 
 | Configuration | R@1 | R@3 | R@5 | R@10 | MRR | nDCG@5 | P@5 | mean ms | p95 ms |
 |---|---|---|---|---|---|---|---|---|---|
-| Dense only | 0.5853 | 0.8256 | 0.8953 | 0.9302 | 0.7740 | 0.7869 | 0.2186 | 16.58 | 21.26 |
-| BM25 only | 0.6434 | 0.8023 | 0.8023 | 0.8023 | 0.7597 | 0.7660 | 0.2000 | 0.78 | 0.92 |
-| Hybrid (RRF) | 0.6434 | 0.8023 | 0.8488 | 1.0000 | 0.7910 | 0.7862 | 0.2093 | 17.04 | 18.41 |
-| Hybrid + Reranker | 0.7946 | 0.8953 | 0.9070 | 1.0000 | 0.9085 | 0.8937 | 0.2233 | 699.95 | 781.92 |
+| Dense only | 0.5853 | 0.8256 | 0.8953 | 0.9302 | 0.7740 | 0.7869 | 0.2186 | 15.95 | 18.79 |
+| BM25 only | 0.6434 | 0.8023 | 0.8023 | 0.8023 | 0.7597 | 0.7660 | 0.2000 | 0.75 | 0.84 |
+| Hybrid (RRF) | 0.6434 | 0.8023 | 0.8488 | 1.0000 | 0.7910 | 0.7862 | 0.2093 | 15.97 | 17.33 |
+| Hybrid + Reranker | 0.7946 | 0.8953 | 0.9070 | 1.0000 | 0.9085 | 0.8937 | 0.2233 | 693.91 | 756.02 |
 
 ### Recall@1 by question type
 
@@ -95,7 +95,7 @@ Provider: `extractive` / `extractive-offline`, top_k=5, LLM judge used: False
 | mean_citations | 0.8372 |
 | over_refusal_rate | 0.3488 |
 | correct_refusal_rate | 0.8571 |
-| mean_latency_ms | 698.3030 |
+| mean_latency_ms | 693.0768 |
 
 ---
 

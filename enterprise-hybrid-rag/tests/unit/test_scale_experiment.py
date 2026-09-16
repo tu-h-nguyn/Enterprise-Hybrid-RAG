@@ -27,6 +27,7 @@ from scale_experiment import (
     EXTRA_CHUNK_SIZE_STORE,
     ContaminationError,
     _assert_uncontaminated,
+    _budget_rows,
     _interference,
     _run_plan,
     run_one_size,
@@ -263,3 +264,60 @@ def test_gold_is_resolved_per_chunk_size_not_pinned(
     assert set(wide_gold) == set(narrow_gold)
     assert all(ids for ids in wide_gold.values())
     assert all(ids for ids in narrow_gold.values())
+
+
+# ------------------------------------------------------- context-budget table
+def _sweep(chunk_size: int, mean_tokens: float, recalls: dict[int, float],
+           docs: int = 3400, store: str = "numpy") -> dict:
+    return {
+        "chunk_size_tokens": chunk_size, "vector_backend": store,
+        "n_distractor_documents": docs, "n_chunks": 100,
+        "mean_chunk_tokens": mean_tokens,
+        "configs": [{"label": "Hybrid + Reranker",
+                     "metrics": {f"recall@{k}": v for k, v in recalls.items()}}],
+    }
+
+
+def test_no_budget_table_when_only_one_chunk_size_ran() -> None:
+    """A one-column comparison is not a comparison."""
+    payload = {"ks": [1, 5], "sizes": [_sweep(256, 187.0, {1: 0.72, 5: 0.80})]}
+
+    assert _budget_rows(payload) == []
+
+
+def test_each_depth_is_priced_in_the_context_it_costs() -> None:
+    """The whole point: k chunks of 500 tokens is not k chunks of 256."""
+    payload = {"ks": [1, 5], "sizes": [
+        _sweep(256, 187.0, {1: 0.7248, 5: 0.8062}),
+        _sweep(500, 343.5, {1: 0.6318, 5: 0.8566}),
+    ]}
+
+    rows = _budget_rows(payload)
+
+    assert [(r["chunk_size_tokens"], r["k"], r["tokens"]) for r in rows] == [
+        (256, 1, 187), (500, 1, 344), (256, 5, 935), (500, 5, 1718)]
+
+
+def test_rows_are_ordered_by_cost_so_the_table_reads_as_a_curve() -> None:
+    payload = {"ks": [1, 3, 5, 10], "sizes": [
+        _sweep(256, 187.0, {1: 0.72, 3: 0.80, 5: 0.80, 10: 0.84}),
+        _sweep(500, 343.5, {1: 0.63, 3: 0.79, 5: 0.85, 10: 0.86}),
+    ]}
+
+    tokens = [r["tokens"] for r in _budget_rows(payload)]
+
+    assert tokens == sorted(tokens)
+
+
+def test_only_the_largest_corpus_and_the_exhaustive_store_are_used() -> None:
+    """Mixing corpus sizes or stores into one curve would bury the answer."""
+    payload = {"ks": [1], "sizes": [
+        _sweep(256, 187.0, {1: 0.99}, docs=0),
+        _sweep(256, 187.0, {1: 0.7248}, docs=3400),
+        _sweep(256, 187.0, {1: 0.11}, docs=3400, store="chroma"),
+        _sweep(500, 343.5, {1: 0.6318}, docs=3400),
+    ]}
+
+    rows = _budget_rows(payload)
+
+    assert [r["recall"] for r in rows] == [0.7248, 0.6318]

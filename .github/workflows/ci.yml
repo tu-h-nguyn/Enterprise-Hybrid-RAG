@@ -87,6 +87,13 @@ jobs:
       - name: Audit evaluation dataset labels
         run: python scripts/evaluate.py --audit-only
 
+      # Prose goes stale silently: a metric moves, a default changes, and a
+      # number that was true last week becomes a claim nobody can check. This
+      # holds every figure in both READMEs and the report to a committed
+      # artefact, or to an exemption that has a written reason.
+      - name: Check every published number against an artefact
+        run: python scripts/check_report_numbers.py
+
       - name: Smoke-test the API
         run: |
           python - <<'PY'

@@ -1,0 +1,289 @@
+#!/usr/bin/env python3
+"""Check that every figure in the documents traces to a committed artefact.
+
+    python scripts/check_report_numbers.py
+    python scripts/check_report_numbers.py --show-known
+
+Prose goes stale silently. A metric moves, a default changes, a run lands on a
+different runner, and a number that was true last week is now a claim nobody can
+check. This script is the mechanical part of the answer: it collects every value
+in ``data/evaluation/*.json`` — including the differences the prose computes
+between them — and reports any number in a document that does not appear there.
+
+The test count is checked differently, because it does not live in an artefact.
+It appears in a badge, in a command comment, in a repository map, in the handover
+document and in the report, and it has drifted between them more than once. The
+check is that they agree with each other; what the true number is, only
+``pytest`` can say.
+
+Exit codes:
+    0  every number is accounted for
+    1  a number could not be traced (they are printed with their file)
+
+Wall-clock figures are held to a looser standard than quality metrics, for the
+same reason ``compare_results.py`` excludes them from its reproducibility check:
+they move by tens of percent between shared runners, and a document quoting a
+timing to two decimal places would be stale the moment the benchmark ran again.
+A number in a document is treated as a timing only when the document says so —
+when a unit follows it — and it then passes if it is within ``LATENCY_TOLERANCE``
+of a timing in an artefact. The unit matters: quality metrics and sub-millisecond
+timings occupy the same numeric range, so a tolerance applied by magnitude alone
+would quietly stop checking Recall@1.
+
+Some figures legitimately do not come from an artefact: a Python version, a
+measurement explicitly labelled as historical, an example payload captured under
+an earlier default. Those live in ``KNOWN`` with the reason attached, so that
+"unexplained" means unexplained rather than "not yet excused".
+
+``KNOWN`` is checked in the other direction too: an exemption no document quotes
+any more is deleted rather than kept, because a permission outliving the sentence
+that earned it is how the next unrelated number gets waved through.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Any
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = PROJECT_ROOT.parent
+EVALUATION = PROJECT_ROOT / "data" / "evaluation"
+
+DOCUMENTS = (
+    REPO_ROOT / "README.md",
+    PROJECT_ROOT / "README.md",
+    REPO_ROOT / "docs" / "report" / "report.tex",
+)
+
+#: Documents that quote the test count but are not number-checked otherwise.
+COUNTED = (*DOCUMENTS, PROJECT_ROOT / "HANDOFF.md")
+
+#: Numbers that are not metrics, with why each one is allowed to be here.
+KNOWN: dict[str, str] = {
+    "3.11": "Python version",
+    "7.29": "the image size before the CPU-only torch change, labelled as the before",
+    "0.15": "a LaTeX spacing value",
+    "0.86": "a LaTeX minipage width",
+    "1.209": "mean gold chunks per question, computed from the dataset labels",
+    "0.9362": "example API payload, captured at the 500-token default",
+    "1.49": "example API payload, captured at the 500-token default",
+    "1664.59": "example API payload, captured at the 500-token default",
+    "1689.21": "example API payload, captured at the 500-token default",
+    "3.3085": "example API payload, captured at the 500-token default",
+    "20.37": "example API payload, captured at the 500-token default",
+    "2.47": "example API payload, captured at the 500-token default",
+    "0.3411": "an offline-fallback HNSW run quoted to show it is not reproducible",
+    "0.3876": "an offline-fallback HNSW run quoted to show it is not reproducible",
+    "0.3643": "an offline-fallback HNSW run quoted to show it is not reproducible",
+    "0.4109": "an offline-fallback exhaustive run quoted for the same comparison",
+    "1416.77": "a superseded latency, quoted in the report as an example of the mistake",
+    "154.99": "a superseded index build time, quoted for the same reason",
+}
+
+NUMBER_RE = re.compile(r"\d+\.\d{2,4}")
+
+#: Every way this repository writes its test count. They must all agree.
+TEST_COUNT_RES = (
+    re.compile(r"badge/tests-(\d+)%20passing"),
+    re.compile(r"(\d+) tests?, no network"),
+    re.compile(r"(\d+) unit and integration tests"),
+    re.compile(r"(\d+) tests behind a"),
+    re.compile(r"done — (\d+) pass"),
+)
+
+#: A number the document itself labels with a time unit: "699.95 ms",
+#: "699.95\,ms", "224.18 s", "3.7 min". Only these get the tolerance.
+TIMED_RE = re.compile(r"(\d+\.\d{2,4})\s*(?:\\,)?\s*(?:ms|s|sec|secs|seconds|min)\b")
+
+#: Artefact keys whose values are wall-clock rather than quality.
+LATENCY_KEYS = ("latency", "seconds", "_ms", "ms_")
+
+#: How far a documented timing may sit from the artefact's and still be the
+#: same measurement. Runner-to-runner variance on this project has been
+#: observed near twofold; 15% keeps a quoted figure honest without turning
+#: every re-benchmark into a documentation edit.
+LATENCY_TOLERANCE = 0.15
+
+
+def _add(value: Any, out: set[str]) -> None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return
+    for form in (str(value), f"{value:.4f}", f"{value:.2f}", f"{value:.1f}"):
+        out.add(form)
+    # Prose says "34.88% of answerable questions" where the artefact says
+    # 0.3488. Both are the same measurement and both must be checkable.
+    if 0.0 <= float(value) <= 1.0:
+        for form in (f"{value * 100:.2f}", f"{value * 100:.1f}"):
+            out.add(form)
+
+
+def _walk(node: Any, out: set[str], timings: set[float], key: str = "") -> None:
+    if isinstance(node, dict):
+        for name, value in node.items():
+            _walk(value, out, timings, name)
+    elif isinstance(node, list):
+        for value in node:
+            _walk(value, out, timings, key)
+    else:
+        _add(node, out)
+        if (isinstance(node, (int, float)) and not isinstance(node, bool)
+                and any(marker in key for marker in LATENCY_KEYS)):
+            timings.add(float(node))
+
+
+def artefact_values() -> tuple[set[str], set[float]]:
+    """Every value in the committed artefacts, plus the deltas prose computes.
+
+    Returns the exact values, and separately the wall-clock timings, which are
+    matched with a tolerance rather than exactly.
+    """
+    values: set[str] = set()
+    timings: set[float] = set()
+    payloads: dict[str, dict] = {}
+    for path in sorted(EVALUATION.glob("*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payloads[path.name] = payload
+        _walk(payload, values, timings)
+
+    scale = payloads.get("scale_results.json", {})
+    for row in scale.get("sizes", []):
+        values.add(f"{row['gold_share_of_corpus'] * 100:.2f}")
+
+    neural = {r["label"]: r["metrics"] for r in payloads.get("results.json", {})
+              .get("retrieval", [])}
+    fallback = {r["label"]: r["metrics"] for r in payloads.get("results_fallback.json", {})
+                .get("retrieval", [])}
+    for label, metrics in neural.items():
+        other = fallback.get(label)
+        if other is None:
+            continue
+        for key in ("recall@1", "mrr"):
+            values.add(f"{abs(metrics[key] - other[key]):.4f}")
+
+    # Differences between configurations, chunk sizes and corpus sizes: the
+    # prose states these as deltas and they have to be checkable too.
+    for source in (neural, fallback):
+        for a in source.values():
+            for b in source.values():
+                for key in ("recall@1", "recall@5", "mrr", "ndcg@5"):
+                    values.add(f"{abs(a[key] - b[key]):.4f}")
+
+    rows = {(r["chunk_size_tokens"], r["vector_backend"], r["n_distractor_documents"]): r
+            for r in scale.get("sizes", [])}
+    for row_key, row in rows.items():
+        for config in row["configs"]:
+            # The same configuration at a different corpus size or chunk size:
+            # the prose states these as "the change over 111x".
+            for other_key, other_row in rows.items():
+                if other_key == row_key:
+                    continue
+                twin = next((c for c in other_row["configs"]
+                             if c["label"] == config["label"]), None)
+                if twin is None:
+                    continue
+                for metric in ("recall@1", "recall@5", "mrr"):
+                    values.add(
+                        f"{abs(config['metrics'][metric] - twin['metrics'][metric]):.4f}")
+            # A different configuration at the same size: "worth +0.3450 over
+            # dense alone".
+            for sibling in row["configs"]:
+                for metric in ("recall@1", "recall@5", "mrr"):
+                    values.add(
+                        f"{abs(config['metrics'][metric] - sibling['metrics'][metric]):.4f}")
+    return values, timings
+
+
+def dead_exemptions(quoted: set[str]) -> list[str]:
+    """Exemptions no document quotes any more.
+
+    An exemption is a standing permission to print a number that traces to
+    nothing. Once the prose that needed it is gone the permission stays, and the
+    next number that happens to collide with it is waved through with a reason
+    that has nothing to do with it. That is the same shape as the --allow-drift
+    bug this repository already paid for: a check that keeps reporting success
+    while the thing it guards has moved out from under it. So a stale exemption
+    fails the gate, and the fix is to delete the line.
+    """
+    return sorted(value for value in KNOWN if value not in quoted)
+
+
+def _is_a_known_timing(number: str, timings: set[float]) -> bool:
+    value = float(number)
+    return any(abs(value - timing) <= LATENCY_TOLERANCE * max(timing, 1e-9)
+               for timing in timings)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--show-known", action="store_true",
+                        help="List the exemptions and why each one exists")
+    args = parser.parse_args()
+
+    if args.show_known:
+        for value, reason in sorted(KNOWN.items()):
+            print(f"  {value:<10} {reason}")
+        return 0
+
+    values, timings = artefact_values()
+    failures = 0
+    quoted: set[str] = set()
+    for document in DOCUMENTS:
+        if not document.exists():
+            print(f"{document}: missing", file=sys.stderr)
+            failures += 1
+            continue
+        text = document.read_text(encoding="utf-8")
+        numbers = sorted(set(NUMBER_RE.findall(text)))
+        quoted.update(numbers)
+        timed = set(TIMED_RE.findall(text))
+        unexplained = [n for n in numbers
+                       if n not in values and n not in KNOWN
+                       and not (n in timed and _is_a_known_timing(n, timings))]
+        label = str(document.relative_to(REPO_ROOT))
+        print(f"{label:<40} {len(numbers):>4} numbers, "
+              f"{len(unexplained)} unexplained")
+        for number in unexplained:
+            print(f"    {number}")
+        failures += len(unexplained)
+
+    stale = dead_exemptions(quoted)
+    if stale:
+        print("\nExemptions no document quotes any more; delete them:")
+        for value in stale:
+            print(f"    {value:<10} {KNOWN[value]}")
+        failures += len(stale)
+
+    counts: dict[str, set[str]] = {}
+    for document in COUNTED:
+        if not document.exists():
+            continue
+        text = document.read_text(encoding="utf-8")
+        found = {m for pattern in TEST_COUNT_RES for m in pattern.findall(text)}
+        if found:
+            counts[str(document.relative_to(REPO_ROOT))] = found
+
+    distinct = {value for values in counts.values() for value in values}
+    if len(distinct) > 1:
+        print("\nThe test count disagrees between documents:")
+        for name, values in sorted(counts.items()):
+            print(f"    {name:<40} {', '.join(sorted(values))}")
+        failures += 1
+    elif distinct:
+        print(f"\ntest count: {distinct.pop()}, consistent across "
+              f"{len(counts)} document(s)")
+
+    if failures:
+        print(f"\n{failures} number(s) do not trace to a committed artefact.",
+              file=sys.stderr)
+        return 1
+    print("\nEvery number traces to a committed artefact or a documented exemption.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
